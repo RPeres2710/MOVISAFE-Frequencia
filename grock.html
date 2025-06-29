@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOVISAFE - Frequência</title>
+    <!-- Google APIs -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <!-- jsPDF e autoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(139, 69, 19, 0.1) 0%, rgba(128, 0, 32, 0.1) 100%);
+        }
+
+        .header h1 {
+            position: relative;
+            z-index: 1;
+            font-size: 2.5em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #800020 0%, #b91d47 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(128, 0, 32, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(128, 0, 32, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(30, 60, 114, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 60, 114, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .table-section {
+            flex: 2;
+            min-width: 0;
+        }
+
+        .dashboard-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .dashboard {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+        }
+
+        .dashboard h3 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.4em;
+            border-bottom: 2px solid #1e3c72;
+            padding-bottom: 10px;
+        }
+
+        .operator-summary {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #1e3c72;
+        }
+
+        .operator-summary h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .summary-value {
+            font-weight: 600;
+            color: #1e3c72;
+        }
+
+        .editable-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 8px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+        }
+
+        .hours-input {
+            width: 50px;
+            padding: 2px 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e3c72;
+            background: white;
+        }
+
+        .hours-input:focus {
+            outline: none;
+            border-color: #1e3c72;
+            box-shadow: 0 0 3px rgba(30, 60, 114, 0.3);
+        }
+
+        .month-selector {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .month-selector select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .scale-info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196F3;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .scale-info h4 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+
+        .scale-info p {
+            color: #424242;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 15px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 12px;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th:first-child {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-width: 120px;
+            font-size: 14px;
+        }
+
+        td {
+            border: 1px solid #e0e6ed;
+            text-align: center;
+            padding: 8px 4px;
+            height: 50px;
+            position: relative;
+        }
+
+        td:first-child {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 15px;
+            border-right: 2px solid #dee2e6;
+        }
+
+        .day-cell {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 45px;
+            font-weight: 600;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .day-cell:hover {
+            background: #f0f8ff !important;
+            transform: scale(1.05);
+        }
+
+        .cell-selector {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .selector-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
+        }
+
+        .selector-option:last-child {
+            border-bottom: none;
+        }
+
+        .selector-option:hover {
+            background: #f0f8ff;
+        }
+
+        .selector-option.D { color: #4CAF50; }
+        .selector-option.N { color: #2196F3; }
+        .selector-option.B { color: #FF9800; }
+        .selector-option.clear { color: #F44336; }
+
+        .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
+        .day-cell.N { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
+        .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
+        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
+
+        .weekend {
+            background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
+            border: 2px solid #ff6666 !important;
+        }
+
+        th.weekend {
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%) !important;
+            color: white !important;
+        }
+
+        .day-header {
+            font-size: 10px;
+            line-height: 1.2;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 25px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .luis-row {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%) !important;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .dashboard-section {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8em; }
+            .controls { padding: 20px; }
+            .main-content { padding: 15px; }
+            th, td { padding: 6px 3px; font-size: 11px; }
+            .day-cell { min-width: 35px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MOVISAFE - Frequência</h1>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="autoFillMonth()">🔄 Preencher Mês Automaticamente</button>
+            <button class="btn btn-secondary" onclick="loadFromSheet()">📥 Carregar do Sheets</button>
+            <button class="btn btn-secondary" onclick="saveToSheet()">💾 Salvar Planilha</button>
+            <button class="btn btn-secondary" onclick="exportToPDF()">📄 Exportar PDF</button>
+            <button class="btn btn-secondary" onclick="clearMonth()">🗑️ Limpar Mês</button>
+        </div>
+
+        <div class="main-content">
+            <div class="table-section">
+                <div class="month-selector">
+                    <label for="monthSelect">Mês/Ano:</label>
+                    <select id="monthSelect" onchange="updateCalendar()">
+                        <option value="2025-01">Janeiro 2025</option>
+                        <option value="2025-02">Fevereiro 2025</option>
+                        <option value="2025-03">Março 2025</option>
+                        <option value="2025-04">Abril 2025</option>
+                        <option value="2025-05">Maio 2025</option>
+                        <option value="2025-06">Junho 2025</option>
+                        <option value="2025-07">Julho 2025</option>
+                        <option value="2025-08">Agosto 2025</option>
+                        <option value="2025-09">Setembro 2025</option>
+                        <option value="2025-10">Outubro 2025</option>
+                        <option value="2025-11">Novembro 2025</option>
+                        <option value="2025-12">Dezembro 2025</option>
+                    </select>
+                </div>
+
+                <div class="scale-info" id="scaleInfo">
+                    <!-- Informação da escala será mostrada aqui -->
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);"></div>
+                        <span>D - Diurno</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);"></div>
+                        <span>N - Noturno</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);"></div>
+                        <span>B - Backup</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="scheduleTable">
+                        <!-- Tabela será gerada dinamicamente -->
+                    </table>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <div class="dashboard">
+                    <h3>📊 Dashboard de Totais</h3>
+                    <div id="dashboardContent">
+                        <!-- Dashboard será gerado dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seletor de célula -->
+    <div class="cell-selector" id="cellSelector">
+        <div class="selector-option D" onclick="setCellValue('D')">D - Diurno</div>
+        <div class="selector-option N" onclick="setCellValue('N')">N - Noturno</div>
+        <div class="selector-option B" onclick="setCellValue('B')">B - Backup</div>
+        <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
+    </div>
+
+    <script>
+        // Configurações da API Google Sheets
+        const GOOGLE_SHEETS_API_KEY = 'AIzaSyArIDx05b9gGgMsgJVGvkM1tR8VgMSsx9Y';
+        const SPREADSHEET_ID = '17LVqhNUNnHRAe2qnYomdFqeJUMPf0qFbKPEMWApkDdo';
+
+        // Operadores principais (sem Luis Butter)
+        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Jonathan Armando'];
+        let scheduleData = {};
+        let overtimeData = {};
+        let currentCellId = null;
+
+        // Data de referência: 28 de junho de 2025
+        const REFERENCE_DATE = new Date(2025, 5, 28);
+
+        // Configurar mês atual
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1;
+        const currentYear = currentDate.getFullYear();
+        document.getElementById('monthSelect').value = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+
+        // Função para inicializar a API do Google Sheets
+        function initGoogleSheetsAPI() {
+            return new Promise((resolve, reject) => {
+                if (typeof gapi === 'undefined') {
+                    reject('Google API não está disponível. Verifique sua conexão com a internet.');
+                    return;
+                }
+                gapi.load('client', () => {
+                    gapi.client.init({
+                        apiKey: GOOGLE_SHEETS_API_KEY,
+                        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+                    }).then(() => {
+                        console.log('✅ Google Sheets API inicializada com sucesso');
+                        resolve();
+                    }).catch(error => {
+                        console.error('❌ Erro ao inicializar API:', error);
+                        reject(`Erro na inicialização da API: ${error.message}`);
+                    });
+                });
+            });
+        }
+
+        // Função para salvar dados na planilha
+        async function saveToSheet() {
+            try {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '💾 Salvando...';
+                btn.disabled = true;
+
+                await initGoogleSheetsAPI();
+                const selectedMonth = document.getElementById('monthSelect').value;
+                const allOperators = [...operators, 'Luis Butter'];
+
+                // Preparar dados
+                const scaleData = [];
+                const overtimeDataArray = [];
+                const dashboardDataArray = [];
+
+                allOperators.forEach(operator => {
+                    Object.keys(scheduleData[operator]).forEach(day => {
+                        if (scheduleData[operator][day]) {
+                            scaleData.push([
+                                selectedMonth,
+                                operator,
+                                parseInt(day),
+                                scheduleData[operator][day],
+                                new Date().toISOString()
+                            ]);
+                        }
+                    });
+                    const he100 = getOvertime(operator, 'he100');
+                    const he50 = getOvertime(operator, 'he50');
+                    if (he100 > 0 || he50 > 0) {
+                        overtimeDataArray.push([
+                            selectedMonth,
+                            operator,
+                            he100,
+                            he50,
+                            new Date().toISOString()
+                        ]);
+                    }
+                    const totals = { D: 0, N: 0, B: 0 };
+                    Object.values(scheduleData[operator]).forEach(value => {
+                        if (totals.hasOwnProperty(value)) totals[value]++;
+                    });
+                    dashboardDataArray.push([
+                        selectedMonth,
+                        operator,
+                        totals.D,
+                        totals.N,
+                        totals.B,
+                        totals.D + totals.N + totals.B,
+                        totals.N
+                    ]);
+                });
+
+                await clearMonthDataFromSheet(selectedMonth);
+
+                const sheets = [
+                    { range: 'Escalas!A:E', values: scaleData },
+                    { range: 'Horas_Extras!A:E', values: overtimeDataArray },
+                    { range: 'Dashboard!A:G', values: dashboardDataArray }
+                ];
+
+                for (const sheet of sheets) {
+                    if (sheet.values.length > 0) {
+                        await gapi.client.sheets.spreadsheets.values.append({
+                            spreadsheetId: SPREADSHEET_ID,
+                            range: sheet.range,
+                            valueInputOption: 'RAW',
+                            resource: { values: sheet.values }
+                        });
+                    }
+                }
+
+                alert('✅ Dados salvos com sucesso no Google Sheets!');
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                let errorMessage = '❌ Erro ao salvar dados.';
+                if (error.status === 401) {
+                    errorMessage += ' Chave de API inválida ou sem permissão. Verifique no Google Cloud Console.';
+                } else if (error.status) {
+                    errorMessage += ` Código de erro: ${error.status}. Detalhes: ${error.result?.error?.message || 'Desconhecido'}`;
+                } else {
+                    errorMessage += ' Verifique o console para detalhes.';
+                }
+                alert(errorMessage);
+            } finally {
+                const btn = document.querySelector('button[onclick="saveToSheet()"]');
+                if (btn) {
+                    btn.textContent = '💾 Salvar Planilha';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // Função para limpar dados do mês atual
+        async function clearMonthDataFromSheet(monthYear) {
+            try {
+                const sheets = ['Escalas', 'Horas_Extras', 'Dashboard'];
+                for (const sheetName of sheets) {
+                    const response = await gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `${sheetName}!A:Z`
+                    });
+
+                    if (response.result.values && response.result.values.length > 1) {
+                        const values = response.result.values;
+                        const rowIndices = values
+                            .map((row, index) => row[0] === monthYear ? index + 1 : -1)
+                            .filter(index => index !== -1)
+                            .sort((a, b) => b - a);
+
+                        if (rowIndices.length > 0) {
+                            const sheetId = await getSheetId(sheetName);
+                            const requests = rowIndices.map(rowIndex => ({
+                                deleteDimension: {
+                                    range: {
+                                        sheetId: sheetId,
+                                        dimension: 'ROWS',
+                                        startIndex: rowIndex - 1,
+                                        endIndex: rowIndex
+                                    }
+                                }
+                            }));
+
+                            await gapi.client.sheets.spreadsheets.batchUpdate({
+                                spreadsheetId: SPREADSHEET_ID,
+                                resource: { requests }
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Erro ao limpar dados da aba ${sheetName}:`, error);
+                throw error;
+            }
+        }
+
+        // Função para obter ID da aba
+        async function getSheetId(sheetName) {
+            try {
+                const response = await gapi.client.sheets.spreadsheets.get({
+                    spreadsheetId: SPREADSHEET_ID
+                });
+                const sheet = response.result.sheets.find(s => s.properties.title === sheetName);
+                if (!sheet) throw new Error(`Aba ${sheetName} não encontrada`);
+                return sheet.properties.sheetId;
+            } catch (error) {
+                console.error('Erro ao obter ID da aba:', error);
+                throw error;
+            }
+        }
+
+        // Função para carregar dados da planilha
+        async function loadFromSheet() {
+            try {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '📥 Carregando...';
+                btn.disabled = true;
+
+                await initGoogleSheetsAPI();
+                const selectedMonth = document.getElementById('monthSelect').value;
+
+                // Carregar escalas
+                const scalesResponse = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Escalas!A:E'
+                });
+
+                if (scalesResponse.result.values) {
+                    clearMonth();
+                    const scaleRows = scalesResponse.result.values.slice(1);
+                    scaleRows.forEach(row => {
+                        if (row[0] === selectedMonth) {
+                            const [monthYear, operator, day, shift] = row;
+                            if (scheduleData[operator]) {
+                                scheduleData[operator][day] = shift;
+                            }
+                        }
+                    });
+                    updateCalendarDisplay();
+                }
+
+                // Carregar horas extras
+                const overtimeResponse = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Horas_Extras!A:E'
+                });
+
+                if (overtimeResponse.result.values) {
+                    const overtimeRows = overtimeResponse.result.values.slice(1);
+                    overtimeRows.forEach(row => {
+                        if (row[0] === selectedMonth) {
+                            const [monthYear, operator, he100, he50] = row;
+                            if (!overtimeData[selectedMonth]) overtimeData[selectedMonth] = {};
+                            if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = {};
+                            overtimeData[selectedMonth][operator].he100 = parseFloat(he100) || 0;
+                            overtimeData[selectedMonth][operator].he50 = parseFloat(he50) || 0;
+                        }
+                    });
+                }
+
+                updateDashboard();
+                alert('✅ Dados carregados com sucesso do Google Sheets!');
+            } catch (error) {
+                console.error('Erro ao carregar:', error);
+                let errorMessage = '❌ Erro ao carregar dados.';
+                if (error.status === 401) {
+                    errorMessage += ' Chave de API inválida ou sem permissão. Verifique no Google Cloud Console.';
+                } else if (error.status) {
+                    errorMessage += ` Código de erro: ${error.status}. Detalhes: ${error.result?.error?.message || 'Desconhecido'}`;
+                } else {
+                    errorMessage += ' Verifique o console para detalhes.';
+                }
+                alert(errorMessage);
+            } finally {
+                const btn = document.querySelector('button[onclick="loadFromSheet()"]');
+                if (btn) {
+                    btn.textContent = '📥 Carregar do Sheets';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // Função para exportar para PDF com layout profissional
+function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    if (!doc.autoTable) {
+        alert('❌ Plugin autoTable não carregado. Verifique se o script jspdf.plugin.autotable.min.js está incluído.');
+        return;
+    }
+
+    const selectedMonth = document.getElementById('monthSelect').value;
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const daysInMonth = getDaysInMonth(year, month);
+    const allOperators = [...operators, 'Luis Butter'];
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 20;
+
+    // Função para adicionar cabeçalho simples e elegante
+    const addHeader = () => {
+        // Título principal
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.setTextColor(30, 60, 114);
+        doc.text('MOVISAFE', margin, 25);
+        
+        doc.setFontSize(14);
+        doc.text('Relatório de Frequência', margin, 35);
+        
+        // Informações do período
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        doc.text(`${getMonthName(month)} de ${year}`, margin, 45);
+        
+        // Data de geração
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - margin - 50, 25);
+        
+        // Linha separadora
+        doc.setDrawColor(30, 60, 114);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 50, pageWidth - margin, 50);
+    };
+
+    // Adicionar cabeçalho
+    addHeader();
+    let yPos = 60;
+
+    // Informações da escala
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 60, 114);
+    doc.text('Informações da Escala:', margin, yPos);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(50, 50, 50);
+    yPos += 8;
+    
+    const firstDayIndex = getDayIndexFromReference(year, month, 1);
+    const firstDaySchedule = getScheduleForDay(firstDayIndex);
+    const firstDayOperators = firstDaySchedule === 0
+        ? "Heitor Cunha (Diurno) + Jonathan Armando (Noturno)"
+        : "Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)";
+    
+    doc.text(`• Primeiro dia: ${firstDayOperators}`, margin + 5, yPos);
+    doc.text(`• Luis Butter trabalha apenas diurno em dias úteis`, margin + 5, yPos + 5);
+    doc.text(`• Referência: 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)`, margin + 5, yPos + 10);
+    
+    yPos += 20;
+
+    // Legenda
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 60, 114);
+    doc.text('Legenda:', margin, yPos);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(50, 50, 50);
+    doc.text('D = Diurno    N = Noturno    B = Backup', margin + 25, yPos);
+    
+    yPos += 15;
+
+    // Tabela de escalas - dividida em duas partes se necessário
+    const maxDaysPerTable = 16; // Máximo de dias por tabela para caber na página
+    let currentDay = 1;
+    
+    while (currentDay <= daysInMonth) {
+        const endDay = Math.min(currentDay + maxDaysPerTable - 1, daysInMonth);
+        
+        // Cabeçalhos da tabela
+        const headers = ['Operador'];
+        for (let day = currentDay; day <= endDay; day++) {
+            const dayOfWeek = getDayOfWeek(year, month, day);
+            headers.push(`${day}\n${dayOfWeek.substring(0, 3)}`);
+        }
+        
+        // Dados da tabela
+        const tableData = allOperators.map(operator => {
+            const row = [operator];
+            for (let day = currentDay; day <= endDay; day++) {
+                row.push(scheduleData[operator][day] || '');
+            }
+            return row;
+        });
+
+        doc.autoTable({
+            head: [headers],
+            body: tableData,
+            startY: yPos,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                textColor: [50, 50, 50],
+                lineColor: [200, 200, 200],
+                lineWidth: 0.1,
+                halign: 'center'
+            },
+            headStyles: {
+                fillColor: [30, 60, 114],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 7
+            },
+            columnStyles: {
+                0: { 
+                    cellWidth: 35, 
+                    fontStyle: 'bold', 
+                    halign: 'left',
+                    fillColor: [245, 245, 245]
+                }
+            },
+            didParseCell: (data) => {
+                // Colorir fins de semana no cabeçalho
+                if (data.section === 'head' && data.column.index > 0) {
+                    const day = currentDay + data.column.index - 1;
+                    if (isWeekend(year, month, day)) {
+                        data.cell.styles.fillColor = [200, 50, 50];
+                    }
+                }
+                
+                // Colorir células baseado no valor
+                if (data.section === 'body' && data.column.index > 0) {
+                    const value = data.cell.text[0];
+                    if (value === 'D') {
+                        data.cell.styles.fillColor = [200, 255, 200];
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (value === 'N') {
+                        data.cell.styles.fillColor = [200, 220, 255];
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (value === 'B') {
+                        data.cell.styles.fillColor = [255, 220, 150];
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+                
+                // Destacar Luis Butter
+                if (data.section === 'body' && data.row.index === 4) {
+                    if (data.column.index === 0) {
+                        data.cell.styles.fillColor = [220, 255, 220];
+                    }
+                }
+            },
+            margin: { left: margin, right: margin }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+        currentDay = endDay + 1;
+        
+        // Nova página se necessário
+        if (currentDay <= daysInMonth && yPos > 200) {
+            doc.addPage();
+            addHeader();
+            yPos = 60;
+        }
+    }
+
+    // Nova página para quantitativos
+    if (yPos > 180) {
+        doc.addPage();
+        addHeader();
+        yPos = 60;
+    }
+
+    // Quantitativos individuais
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 60, 114);
+    doc.text('Quantitativos Individuais', margin, yPos);
+    yPos += 10;
+
+    // Tabela de resumo
+    const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%'];
+    const summaryData = allOperators.map(operator => {
+        const totals = { D: 0, N: 0, B: 0 };
+        Object.values(scheduleData[operator]).forEach(value => {
+            if (totals.hasOwnProperty(value)) totals[value]++;
+        });
+        const totalPlantoes = totals.D + totals.N + totals.B;
+        const he100 = getOvertime(operator, 'he100');
+        const he50 = getOvertime(operator, 'he50');
+        
+        return [
+            operator,
+            totals.D.toString(),
+            totals.N.toString(),
+            totals.B.toString(),
+            totalPlantoes.toString(),
+            he100 + 'h',
+            he50 + 'h'
+        ];
+    });
+
+    doc.autoTable({
+        head: [summaryHeaders],
+        body: summaryData,
+        startY: yPos,
+        styles: {
+            fontSize: 9,
+            cellPadding: 3,
+            textColor: [50, 50, 50],
+            lineColor: [200, 200, 200],
+            lineWidth: 0.1,
+            halign: 'center'
+        },
+        headStyles: {
+            fillColor: [30, 60, 114],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+        },
+        columnStyles: {
+            0: { 
+                cellWidth: 40, 
+                fontStyle: 'bold', 
+                halign: 'left',
+                fillColor: [245, 245, 245]
+            },
+            4: { fontStyle: 'bold' }
+        },
+        didParseCell: (data) => {
+            // Destacar Luis Butter
+            if (data.section === 'body' && data.row.index === 4) {
+                if (data.column.index === 0) {
+                    data.cell.styles.fillColor = [220, 255, 220];
+                }
+            }
+        },
+        margin: { left: margin, right: margin }
+    });
+
+    yPos = doc.lastAutoTable.finalY + 20;
+
+    // Campo de observações
+    if (yPos > 200) {
+        doc.addPage();
+        addHeader();
+        yPos = 60;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 60, 114);
+    doc.text('Observações:', margin, yPos);
+    yPos += 10;
+
+    // Caixa para observações
+    const obsHeight = 60;
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, obsHeight);
+
+    // Linhas para escrita
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    for (let i = 1; i <= 10; i++) {
+        const lineY = yPos + (i * 5.5);
+        if (lineY < yPos + obsHeight - 5) {
+            doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
+        }
+    }
+
+    yPos += obsHeight + 20;
+
+    // Assinaturas
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 60, 114);
+    doc.text('Assinaturas:', margin, yPos);
+    yPos += 15;
+
+    // Linhas de assinatura
+    const signatureWidth = 60;
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.5);
+    
+    // Responsável
+    doc.line(margin, yPos, margin + signatureWidth, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text('Responsável pela Escala', margin, yPos + 5);
+    doc.text('Data: ___/___/______', margin, yPos + 10);
+
+    // Supervisor
+    doc.line(pageWidth - margin - signatureWidth, yPos, pageWidth - margin, yPos);
+    doc.text('Supervisor/Gerente', pageWidth - margin - signatureWidth, yPos + 5);
+    doc.text('Data: ___/___/______', pageWidth - margin - signatureWidth, yPos + 10);
+
+    // Rodapé
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text('MOVISAFE - Segurança Corporativa e Empresarial', margin, pageHeight - 15);
+    doc.text(`Página 1`, pageWidth - margin - 15, pageHeight - 15);
+
+    // Salvar
+    const monthName = getMonthName(month);
+    doc.save(`MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
+    
+    alert(`✅ PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
+}
+        // Funções auxiliares
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function getDayOfWeek(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            return days[date.getDay()];
+        }
+
+        function isWeekend(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            return date.getDay() === 0 || date.getDay() === 6;
+        }
+
+        function isWeekday(year, month, day) {
+            return !isWeekend(year, month, day);
+        }
+
+        function getDayIndexFromReference(year, month, day) {
+            const targetDate = new Date(year, month - 1, day);
+            const diffTime = targetDate - REFERENCE_DATE;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getScheduleForDay(dayIndex) {
+            return dayIndex % 2;
+        }
+
+        function initializeOvertimeData() {
+            const allOperators = [...operators, 'Luis Butter'];
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (!overtimeData[selectedMonth]) {
+                overtimeData[selectedMonth] = {};
+            }
+            allOperators.forEach(operator => {
+                if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
+            });
+        }
+
+        function updateOvertime(operator, type, value) {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (!overtimeData[selectedMonth]) overtimeData[selectedMonth] = {};
+            if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
+            const parsedValue = parseFloat(value);
+            overtimeData[selectedMonth][operator][type] = isNaN(parsedValue) ? 0 : Math.max(0, parsedValue);
+            updateDashboard();
+        }
+
+        function getOvertime(operator, type) {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            return overtimeData[selectedMonth]?.[operator]?.[type] || 0;
+        }
+
+        function updateScaleInfo() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const firstDayIndex = getDayIndexFromReference(year, month, 1);
+            const firstDaySchedule = getScheduleForDay(firstDayIndex);
+            const firstDayOperators = firstDaySchedule === 0
+                ? "Heitor Cunha (D) + Jonathan Armando (N)"
+                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
+            document.getElementById('scaleInfo').innerHTML = `
+                <h4>📅 Informações da Escala - ${getMonthName(month)} ${year}</h4>
+                <p><strong>Primeiro dia:</strong> ${firstDayOperators}</p>
+                <p><strong>Referência:</strong> 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)</p>
+                <p><strong>Luis Butter:</strong> Diurno apenas em dias úteis</p>
+            `;
+        }
+
+        function getMonthName(month) {
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            return months[month - 1];
+        }
+
+        function updateCalendar() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+            const table = document.getElementById('scheduleTable');
+            table.innerHTML = '';
+
+            // Cabeçalho
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>Operador</th>';
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayOfWeek = getDayOfWeek(year, month, day);
+                const isWeekendDay = isWeekend(year, month, day);
+                headerRow.innerHTML += `<th class="day-header ${isWeekendDay ? 'week-egyptian-blue-500' : ''}">${day.toString().padStart(2, '0')}<br>${dayOfWeek}</th>`;
+            }
+            table.appendChild(headerRow);
+
+            // Linhas
+            const allOperators = [...operators, 'Luis Butter'];
+            allOperators.forEach(operator => {
+                const row = document.createElement('tr');
+                if (operator === 'Luis Butter') row.classList.add('luis-row');
+                row.innerHTML = `<td>${operator}</td>`;
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const cellId = `${operator}-${day}`;
+                    const isWeekendDay = isWeekend(year, month, day);
+                    row.innerHTML += `<td class="day-cell ${isWeekendDay ? 'weekend' : ''}" id="${cellId}" onclick="showCellSelector('${cellId}', event)"></td>`;
+                }
+                table.appendChild(row);
+            });
+
+            // Inicializar dados
+            scheduleData = {};
+            allOperators.forEach(operator => {
+                scheduleData[operator] = {};
+                for (let day = 1; day <= daysInMonth; day++) {
+                    scheduleData[operator][day] = '';
+                }
+            });
+
+            initializeOvertimeData();
+            updateScaleInfo();
+            updateDashboard();
+        }
+
+        function showCellSelector(cellId, event) {
+            event.stopPropagation();
+            currentCellId = cellId;
+            const selector = document.getElementById('cellSelector');
+            const cell = document.getElementById(cellId);
+            const rect = cell.getBoundingClientRect();
+            selector.style.display = 'block';
+            selector.style.position = 'fixed';
+            selector.style.left = rect.left + rect.width / 2 - 60 + 'px';
+            selector.style.top = rect.top - 10 + 'px';
+        }
+
+        function setCellValue(value) {
+            if (!currentCellId) return;
+            const cell = document.getElementById(currentCellId);
+            const [operator, day] = currentCellId.split('-');
+            cell.textContent = value;
+            cell.className = cell.className.replace(/\s[DNB]$/, '');
+            if (value) cell.classList.add(value);
+            scheduleData[operator][day] = value;
+            document.getElementById('cellSelector').style.display = 'none';
+            currentCellId = null;
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const allOperators = [...operators, 'Luis Butter'];
+            const dashboardContent = document.getElementById('dashboardContent');
+            dashboardContent.innerHTML = '';
+
+            allOperators.forEach(operator => {
+                const totals = { D: 0, N: 0, B: 0 };
+                Object.values(scheduleData[operator]).forEach(value => {
+                    if (totals.hasOwnProperty(value)) totals[value]++;
+                });
+                const totalPlantoes = totals.D + totals.N + totals.B;
+                const adicionaisNoturnos = totals.N;
+                const horasExtras100 = getOvertime(operator, 'he100');
+                const horasExtras50 = getOvertime(operator, 'he50');
+
+                const operatorDiv = document.createElement('div');
+                operatorDiv.className = 'operator-summary';
+                operatorDiv.innerHTML = `
+                    <h4>${operator}</h4>
+                    <div class="summary-grid">
+                        <div class="summary-item"><span>Plantões Diurnos:</span><span class="summary-value">${totals.D}</span></div>
+                        <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
+                        <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
+                        <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
+                        <div class="summary-item"><span>Adicionais Noturnos:</span><span class="summary-value">${adicionaisNoturnos}</span></div>
+                        <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
+                        <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
+                    </div>
+                `;
+                dashboardContent.appendChild(operatorDiv);
+            });
+        }
+
+        function autoFillMonth() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+            clearMonth();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayIndex = getDayIndexFromReference(year, month, day);
+                const scheduleType = getScheduleForDay(dayIndex);
+                if (scheduleType === 0) {
+                    scheduleData['Heitor Cunha'][day] = 'D';
+                    scheduleData['Jonathan Armando'][day] = 'N';
+                } else {
+                    scheduleData['Josniel Rodriguez'][day] = 'D';
+                    scheduleData['Leticia Pinheiro'][day] = 'N';
+                }
+                if (isWeekday(year, month, day)) {
+                    scheduleData['Luis Butter'][day] = 'D';
+                }
+            }
+
+            updateCalendarDisplay();
+            updateDashboard();
+            const firstDayIndex = getDayIndexFromReference(year, month, 1);
+            const firstDaySchedule = getScheduleForDay(firstDayIndex);
+            const firstDayOperators = firstDaySchedule === 0
+                ? "Heitor Cunha (D) + Jonathan Armando (N)"
+                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
+            alert(`Mês preenchido automaticamente!\n\nContinuidade mantida:\n- Primeiro dia: ${firstDayOperators}\n- Alternância diária entre as duplas\n- Luis Butter (D) apenas em dias úteis`);
+        }
+
+        function updateCalendarDisplay() {
+            const allOperators = [...operators, 'Luis Butter'];
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+
+            allOperators.forEach(operator => {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const cellId = `${operator}-${day}`;
+                    const cell = document.getElementById(cellId);
+                    if (cell) {
+                        const value = scheduleData[operator][day] || '';
+                        cell.textContent = value;
+                        cell.className = cell.className.replace(/\s[DNB]$/, '');
+                        if (value) cell.classList.add(value);
+                    }
+                }
+            });
+        }
+
+        function clearMonth() {
+            const allOperators = [...operators, 'Luis Butter'];
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+
+            allOperators.forEach(operator => {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    scheduleData[operator][day] = '';
+                    const cellId = `${operator}-${day}`;
+                    const cell = document.getElementById(cellId);
+                    if (cell) {
+                        cell.textContent = '';
+                        cell.className = cell.className.replace(/\s[DNB]$/, '');
+                    }
+                }
+            });
+
+            initializeOvertimeData();
+            updateDashboard();
+        }
+
+        // Fechar seletor ao clicar fora
+        document.addEventListener('click', function(event) {
+            const selector = document.getElementById('cellSelector');
+            if (!selector.contains(event.target)) {
+                selector.style.display = 'none';
+                currentCellId = null;
+            }
+        });
+
+        // Inicializar calendário
+        updateCalendar();
+    </script>
+</body>
+</html>
