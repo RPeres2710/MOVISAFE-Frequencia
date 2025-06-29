@@ -333,7 +333,7 @@
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
         .day-cell.N { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
         .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
-        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
+        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, # Дэ2FA2 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -382,6 +382,13 @@
             overflow-x: auto;
         }
 
+        .loading-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 16px;
+        }
+
         @media (max-width: 1200px) {
             .main-content {
                 flex-direction: column;
@@ -417,6 +424,7 @@
 
         <div class="main-content">
             <div class="table-section">
+                <p class="loading-message">Carregando tabela... Se esta mensagem persistir, verifique o console (F12).</p>
                 <div class="month-selector">
                     <label for="monthSelect">Mês/Ano:</label>
                     <select id="monthSelect" onchange="updateCalendar()">
@@ -425,7 +433,7 @@
                         <option value="2025-03">Março 2025</option>
                         <option value="2025-04">Abril 2025</option>
                         <option value="2025-05">Maio 2025</option>
-                        <option value="2025-06">Junho 2025</option>
+                        <option value="2025-06" selected>Junho 2025</option>
                         <option value="2025-07">Julho 2025</option>
                         <option value="2025-08">Agosto 2025</option>
                         <option value="2025-09">Setembro 2025</option>
@@ -481,6 +489,8 @@
     </div>
 
     <script>
+        console.log('✅ Página carregada. Verificando inicialização...');
+
         // Configurações da API Google Sheets
         const GOOGLE_SHEETS_API_KEY = 'AIzaSyArIDx05b9gGgMsgJVGvkM1tR8VgMSsx9Y';
         const SPREADSHEET_ID = '17LVqhNUNnHRAe2qnYomdFqeJUMPf0qFbKPEMWApkDdo';
@@ -499,12 +509,15 @@
         const currentMonth = currentDate.getMonth() + 1;
         const currentYear = currentDate.getFullYear();
         document.getElementById('monthSelect').value = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+        console.log(`✅ Mês inicial configurado: ${document.getElementById('monthSelect').value}`);
 
         // Função para inicializar a API do Google Sheets
         function initGoogleSheetsAPI() {
+            console.log('🔄 Inicializando Google Sheets API...');
             return new Promise((resolve, reject) => {
                 if (typeof gapi === 'undefined') {
-                    reject('Google API não está disponível. Verifique sua conexão com a internet.');
+                    console.error('❌ Google API não disponível');
+                    reject('Google API não está disponível. Verifique sua conexão ou o script da API.');
                     return;
                 }
                 gapi.load('client', () => {
@@ -516,7 +529,7 @@
                         resolve();
                     }).catch(error => {
                         console.error('❌ Erro ao inicializar API:', error);
-                        reject(`Erro na inicialização da API: ${error.message}`);
+                        reject(`Erro na inicialização da API: ${error.message || 'Desconhecido'}`);
                     });
                 });
             });
@@ -524,6 +537,7 @@
 
         // Função para salvar dados na planilha
         async function saveToSheet() {
+            console.log('💾 Iniciando salvamento no Google Sheets...');
             try {
                 const btn = event.target;
                 const originalText = btn.textContent;
@@ -587,18 +601,20 @@
 
                 for (const sheet of sheets) {
                     if (sheet.values.length > 0) {
+                        console.log(`📤 Salvando dados na aba ${sheet.range}...`);
                         await gapi.client.sheets.spreadsheets.values.append({
                             spreadsheetId: SPREADSHEET_ID,
                             range: sheet.range,
                             valueInputOption: 'RAW',
                             resource: { values: sheet.values }
                         });
+                        console.log(`✅ Dados salvos na aba ${sheet.range}`);
                     }
                 }
 
                 alert('✅ Dados salvos com sucesso no Google Sheets!');
             } catch (error) {
-                console.error('Erro ao salvar:', error);
+                console.error('❌ Erro ao salvar:', error);
                 let errorMessage = '❌ Erro ao salvar dados.';
                 if (error.status === 401) {
                     errorMessage += ' Chave de API inválida ou sem permissão. Verifique no Google Cloud Console.';
@@ -619,6 +635,7 @@
 
         // Função para limpar dados do mês atual
         async function clearMonthDataFromSheet(monthYear) {
+            console.log(`🗑️ Limpando dados do mês ${monthYear}...`);
             try {
                 const sheets = ['Escalas', 'Horas_Extras', 'Dashboard'];
                 for (const sheetName of sheets) {
@@ -651,32 +668,36 @@
                                 spreadsheetId: SPREADSHEET_ID,
                                 resource: { requests }
                             });
+                            console.log(`✅ Dados da aba ${sheetName} limpos com sucesso`);
                         }
                     }
                 }
             } catch (error) {
-                console.error(`Erro ao limpar dados da aba ${sheetName}:`, error);
+                console.error(`❌ Erro ao limpar dados da aba ${sheetName}:`, error);
                 throw error;
             }
         }
 
         // Função para obter ID da aba
         async function getSheetId(sheetName) {
+            console.log(`🔍 Obtendo ID da aba ${sheetName}...`);
             try {
                 const response = await gapi.client.sheets.spreadsheets.get({
                     spreadsheetId: SPREADSHEET_ID
                 });
                 const sheet = response.result.sheets.find(s => s.properties.title === sheetName);
                 if (!sheet) throw new Error(`Aba ${sheetName} não encontrada`);
+                console.log(`✅ ID da aba ${sheetName}: ${sheet.properties.sheetId}`);
                 return sheet.properties.sheetId;
             } catch (error) {
-                console.error('Erro ao obter ID da aba:', error);
+                console.error('❌ Erro ao obter ID da aba:', error);
                 throw error;
             }
         }
 
         // Função para carregar dados da planilha
         async function loadFromSheet() {
+            console.log('📥 Iniciando carregamento do Google Sheets...');
             try {
                 const btn = event.target;
                 const originalText = btn.textContent;
@@ -693,6 +714,7 @@
                 });
 
                 if (scalesResponse.result.values) {
+                    console.log('✅ Escalas carregadas com sucesso');
                     clearMonth();
                     const scaleRows = scalesResponse.result.values.slice(1);
                     scaleRows.forEach(row => {
@@ -704,6 +726,8 @@
                         }
                     });
                     updateCalendarDisplay();
+                } else {
+                    console.warn('⚠️ Nenhuma escala encontrada para o mês selecionado');
                 }
 
                 // Carregar horas extras
@@ -713,6 +737,7 @@
                 });
 
                 if (overtimeResponse.result.values) {
+                    console.log('✅ Horas extras carregadas com sucesso');
                     const overtimeRows = overtimeResponse.result.values.slice(1);
                     overtimeRows.forEach(row => {
                         if (row[0] === selectedMonth) {
@@ -723,12 +748,14 @@
                             overtimeData[selectedMonth][operator].he50 = parseFloat(he50) || 0;
                         }
                     });
+                } else {
+                    console.warn('⚠️ Nenhuma hora extra encontrada para o mês selecionado');
                 }
 
                 updateDashboard();
                 alert('✅ Dados carregados com sucesso do Google Sheets!');
             } catch (error) {
-                console.error('Erro ao carregar:', error);
+                console.error('❌ Erro ao carregar:', error);
                 let errorMessage = '❌ Erro ao carregar dados.';
                 if (error.status === 401) {
                     errorMessage += ' Chave de API inválida ou sem permissão. Verifique no Google Cloud Console.';
@@ -748,332 +775,314 @@
         }
 
         // Função para exportar para PDF com layout profissional
-function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-    });
-
-    if (!doc.autoTable) {
-        alert('❌ Plugin autoTable não carregado. Verifique se o script jspdf.plugin.autotable.min.js está incluído.');
-        return;
-    }
-
-    const selectedMonth = document.getElementById('monthSelect').value;
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const daysInMonth = getDaysInMonth(year, month);
-    const allOperators = [...operators, 'Luis Butter'];
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    const margin = 20;
-
-    // Função para adicionar cabeçalho simples e elegante
-    const addHeader = () => {
-        // Título principal
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(18);
-        doc.setTextColor(30, 60, 114);
-        doc.text('MOVISAFE', margin, 25);
-        
-        doc.setFontSize(14);
-        doc.text('Relatório de Frequência', margin, 35);
-        
-        // Informações do período
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
-        doc.text(`${getMonthName(month)} de ${year}`, margin, 45);
-        
-        // Data de geração
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - margin - 50, 25);
-        
-        // Linha separadora
-        doc.setDrawColor(30, 60, 114);
-        doc.setLineWidth(0.5);
-        doc.line(margin, 50, pageWidth - margin, 50);
-    };
-
-    // Adicionar cabeçalho
-    addHeader();
-    let yPos = 60;
-
-    // Informações da escala
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(30, 60, 114);
-    doc.text('Informações da Escala:', margin, yPos);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(50, 50, 50);
-    yPos += 8;
-    
-    const firstDayIndex = getDayIndexFromReference(year, month, 1);
-    const firstDaySchedule = getScheduleForDay(firstDayIndex);
-    const firstDayOperators = firstDaySchedule === 0
-        ? "Heitor Cunha (Diurno) + Jonathan Armando (Noturno)"
-        : "Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)";
-    
-    doc.text(`• Primeiro dia: ${firstDayOperators}`, margin + 5, yPos);
-    doc.text(`• Luis Butter trabalha apenas diurno em dias úteis`, margin + 5, yPos + 5);
-    doc.text(`• Referência: 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)`, margin + 5, yPos + 10);
-    
-    yPos += 20;
-
-    // Legenda
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(30, 60, 114);
-    doc.text('Legenda:', margin, yPos);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(50, 50, 50);
-    doc.text('D = Diurno    N = Noturno    B = Backup', margin + 25, yPos);
-    
-    yPos += 15;
-
-    // Tabela de escalas - dividida em duas partes se necessário
-    const maxDaysPerTable = 16; // Máximo de dias por tabela para caber na página
-    let currentDay = 1;
-    
-    while (currentDay <= daysInMonth) {
-        const endDay = Math.min(currentDay + maxDaysPerTable - 1, daysInMonth);
-        
-        // Cabeçalhos da tabela
-        const headers = ['Operador'];
-        for (let day = currentDay; day <= endDay; day++) {
-            const dayOfWeek = getDayOfWeek(year, month, day);
-            headers.push(`${day}\n${dayOfWeek.substring(0, 3)}`);
-        }
-        
-        // Dados da tabela
-        const tableData = allOperators.map(operator => {
-            const row = [operator];
-            for (let day = currentDay; day <= endDay; day++) {
-                row.push(scheduleData[operator][day] || '');
+        function exportToPDF() {
+            console.log('📄 Iniciando exportação para PDF...');
+            const { jsPDF } = window.jspdf;
+            if (!jsPDF) {
+                console.error('❌ jsPDF não carregado');
+                alert('❌ Erro: jsPDF não carregado. Verifique o console.');
+                return;
             }
-            return row;
-        });
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
 
-        doc.autoTable({
-            head: [headers],
-            body: tableData,
-            startY: yPos,
-            styles: {
-                fontSize: 8,
-                cellPadding: 2,
-                textColor: [50, 50, 50],
-                lineColor: [200, 200, 200],
-                lineWidth: 0.1,
-                halign: 'center'
-            },
-            headStyles: {
-                fillColor: [30, 60, 114],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold',
-                fontSize: 7
-            },
-            columnStyles: {
-                0: { 
-                    cellWidth: 35, 
-                    fontStyle: 'bold', 
-                    halign: 'left',
-                    fillColor: [245, 245, 245]
-                }
-            },
-            didParseCell: (data) => {
-                // Colorir fins de semana no cabeçalho
-                if (data.section === 'head' && data.column.index > 0) {
-                    const day = currentDay + data.column.index - 1;
-                    if (isWeekend(year, month, day)) {
-                        data.cell.styles.fillColor = [200, 50, 50];
-                    }
-                }
-                
-                // Colorir células baseado no valor
-                if (data.section === 'body' && data.column.index > 0) {
-                    const value = data.cell.text[0];
-                    if (value === 'D') {
-                        data.cell.styles.fillColor = [200, 255, 200];
-                        data.cell.styles.fontStyle = 'bold';
-                    } else if (value === 'N') {
-                        data.cell.styles.fillColor = [200, 220, 255];
-                        data.cell.styles.fontStyle = 'bold';
-                    } else if (value === 'B') {
-                        data.cell.styles.fillColor = [255, 220, 150];
-                        data.cell.styles.fontStyle = 'bold';
-                    }
-                }
-                
-                // Destacar Luis Butter
-                if (data.section === 'body' && data.row.index === 4) {
-                    if (data.column.index === 0) {
-                        data.cell.styles.fillColor = [220, 255, 220];
-                    }
-                }
-            },
-            margin: { left: margin, right: margin }
-        });
+            if (!doc.autoTable) {
+                console.error('❌ Plugin autoTable não carregado');
+                alert('❌ Plugin autoTable não carregado. Verifique se o script jspdf.plugin.autotable.min.js está incluído.');
+                return;
+            }
 
-        yPos = doc.lastAutoTable.finalY + 15;
-        currentDay = endDay + 1;
-        
-        // Nova página se necessário
-        if (currentDay <= daysInMonth && yPos > 200) {
-            doc.addPage();
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+            const allOperators = [...operators, 'Luis Butter'];
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const margin = 20;
+
+            // Função para adicionar cabeçalho simples e elegante
+            const addHeader = () => {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(30, 60, 114);
+                doc.text('MOVISAFE', margin, 25);
+                
+                doc.setFontSize(14);
+                doc.text('Relatório de Frequência', margin, 35);
+                
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(12);
+                doc.text(`${getMonthName(month)} de ${year}`, margin, 45);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - margin - 50, 25);
+                
+                doc.setDrawColor(30, 60, 114);
+                doc.setLineWidth(0.5);
+                doc.line(margin, 50, pageWidth - margin, 50);
+            };
+
             addHeader();
-            yPos = 60;
-        }
-    }
+            let yPos = 60;
 
-    // Nova página para quantitativos
-    if (yPos > 180) {
-        doc.addPage();
-        addHeader();
-        yPos = 60;
-    }
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Informações da Escala:', margin, yPos);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(50, 50, 50);
+            yPos += 8;
+            
+            const firstDayIndex = getDayIndexFromReference(year, month, 1);
+            const firstDaySchedule = getScheduleForDay(firstDayIndex);
+            const firstDayOperators = firstDaySchedule === 0
+                ? "Heitor Cunha (Diurno) + Jonathan Armando (Noturno)"
+                : "Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)";
+            
+            doc.text(`• Primeiro dia: ${firstDayOperators}`, margin + 5, yPos);
+            doc.text(`• Luis Butter trabalha apenas diurno em dias úteis`, margin + 5, yPos + 5);
+            doc.text(`• Referência: 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)`, margin + 5, yPos + 10);
+            
+            yPos += 20;
 
-    // Quantitativos individuais
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(30, 60, 114);
-    doc.text('Quantitativos Individuais', margin, yPos);
-    yPos += 10;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Legenda:', margin, yPos);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(50, 50, 50);
+            doc.text('D = Diurno    N = Noturno    B = Backup', margin + 25, yPos);
+            
+            yPos += 15;
 
-    // Tabela de resumo
-    const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%'];
-    const summaryData = allOperators.map(operator => {
-        const totals = { D: 0, N: 0, B: 0 };
-        Object.values(scheduleData[operator]).forEach(value => {
-            if (totals.hasOwnProperty(value)) totals[value]++;
-        });
-        const totalPlantoes = totals.D + totals.N + totals.B;
-        const he100 = getOvertime(operator, 'he100');
-        const he50 = getOvertime(operator, 'he50');
-        
-        return [
-            operator,
-            totals.D.toString(),
-            totals.N.toString(),
-            totals.B.toString(),
-            totalPlantoes.toString(),
-            he100 + 'h',
-            he50 + 'h'
-        ];
-    });
+            const maxDaysPerTable = 16;
+            let currentDay = 1;
+            
+            while (currentDay <= daysInMonth) {
+                const endDay = Math.min(currentDay + maxDaysPerTable - 1, daysInMonth);
+                
+                const headers = ['Operador'];
+                for (let day = currentDay; day <= endDay; day++) {
+                    const dayOfWeek = getDayOfWeek(year, month, day);
+                    headers.push(`${day}\n${dayOfWeek.substring(0, 3)}`);
+                }
+                
+                const tableData = allOperators.map(operator => {
+                    const row = [operator];
+                    for (let day = currentDay; day <= endDay; day++) {
+                        row.push(scheduleData[operator][day] || '');
+                    }
+                    return row;
+                });
 
-    doc.autoTable({
-        head: [summaryHeaders],
-        body: summaryData,
-        startY: yPos,
-        styles: {
-            fontSize: 9,
-            cellPadding: 3,
-            textColor: [50, 50, 50],
-            lineColor: [200, 200, 200],
-            lineWidth: 0.1,
-            halign: 'center'
-        },
-        headStyles: {
-            fillColor: [30, 60, 114],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold'
-        },
-        columnStyles: {
-            0: { 
-                cellWidth: 40, 
-                fontStyle: 'bold', 
-                halign: 'left',
-                fillColor: [245, 245, 245]
-            },
-            4: { fontStyle: 'bold' }
-        },
-        didParseCell: (data) => {
-            // Destacar Luis Butter
-            if (data.section === 'body' && data.row.index === 4) {
-                if (data.column.index === 0) {
-                    data.cell.styles.fillColor = [220, 255, 220];
+                doc.autoTable({
+                    head: [headers],
+                    body: tableData,
+                    startY: yPos,
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2,
+                        textColor: [50, 50, 50],
+                        lineColor: [200, 200, 200],
+                        lineWidth: 0.1,
+                        halign: 'center'
+                    },
+                    headStyles: {
+                        fillColor: [30, 60, 114],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        fontSize: 7
+                    },
+                    columnStyles: {
+                        0: { 
+                            cellWidth: 35, 
+                            fontStyle: 'bold', 
+                            halign: 'left',
+                            fillColor: [245, 245, 245]
+                        }
+                    },
+                    didParseCell: (data) => {
+                        if (data.section === 'head' && data.column.index > 0) {
+                            const day = currentDay + data.column.index - 1;
+                            if (isWeekend(year, month, day)) {
+                                data.cell.styles.fillColor = [200, 50, 50];
+                            }
+                        }
+                        
+                        if (data.section === 'body' && data.column.index > 0) {
+                            const value = data.cell.text[0];
+                            if (value === 'D') {
+                                data.cell.styles.fillColor = [200, 255, 200];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (value === 'N') {
+                                data.cell.styles.fillColor = [200, 220, 255];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (value === 'B') {
+                                data.cell.styles.fillColor = [255, 220, 150];
+                                data.cell.styles.fontStyle = 'bold';
+                            }
+                        }
+                        
+                        if (data.section === 'body' && data.row.index === 4) {
+                            if (data.column.index === 0) {
+                                data.cell.styles.fillColor = [220, 255, 220];
+                            }
+                        }
+                    },
+                    margin: { left: margin, right: margin }
+                });
+
+                yPos = doc.lastAutoTable.finalY + 15;
+                currentDay = endDay + 1;
+                
+                if (currentDay <= daysInMonth && yPos > 200) {
+                    doc.addPage();
+                    addHeader();
+                    yPos = 60;
                 }
             }
-        },
-        margin: { left: margin, right: margin }
-    });
 
-    yPos = doc.lastAutoTable.finalY + 20;
+            if (yPos > 180) {
+                doc.addPage();
+                addHeader();
+                yPos = 60;
+            }
 
-    // Campo de observações
-    if (yPos > 200) {
-        doc.addPage();
-        addHeader();
-        yPos = 60;
-    }
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Quantitativos Individuais', margin, yPos);
+            yPos += 10;
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(30, 60, 114);
-    doc.text('Observações:', margin, yPos);
-    yPos += 10;
+            const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%'];
+            const summaryData = allOperators.map(operator => {
+                const totals = { D: 0, N: 0, B: 0 };
+                Object.values(scheduleData[operator]).forEach(value => {
+                    if (totals.hasOwnProperty(value)) totals[value]++;
+                });
+                const totalPlantoes = totals.D + totals.N + totals.B;
+                const he100 = getOvertime(operator, 'he100');
+                const he50 = getOvertime(operator, 'he50');
+                
+                return [
+                    operator,
+                    totals.D.toString(),
+                    totals.N.toString(),
+                    totals.B.toString(),
+                    totalPlantoes.toString(),
+                    he100 + 'h',
+                    he50 + 'h'
+                ];
+            });
 
-    // Caixa para observações
-    const obsHeight = 60;
-    doc.setDrawColor(150, 150, 150);
-    doc.setLineWidth(0.5);
-    doc.rect(margin, yPos, pageWidth - 2 * margin, obsHeight);
+            doc.autoTable({
+                head: [summaryHeaders],
+                body: summaryData,
+                startY: yPos,
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 3,
+                    textColor: [50, 50, 50],
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1,
+                    halign: 'center'
+                },
+                headStyles: {
+                    fillColor: [30, 60, 114],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                columnStyles: {
+                    0: { 
+                        cellWidth: 40, 
+                        fontStyle: 'bold', 
+                        halign: 'left',
+                        fillColor: [245, 245, 245]
+                    },
+                    4: { fontStyle: 'bold' }
+                },
+                didParseCell: (data) => {
+                    if (data.section === 'body' && data.row.index === 4) {
+                        if (data.column.index === 0) {
+                            data.cell.styles.fillColor = [220, 255, 220];
+                        }
+                    }
+                },
+                margin: { left: margin, right: margin }
+            });
 
-    // Linhas para escrita
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.2);
-    for (let i = 1; i <= 10; i++) {
-        const lineY = yPos + (i * 5.5);
-        if (lineY < yPos + obsHeight - 5) {
-            doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
+            yPos = doc.lastAutoTable.finalY + 20;
+
+            if (yPos > 200) {
+                doc.addPage();
+                addHeader();
+                yPos = 60;
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Observações:', margin, yPos);
+            yPos += 10;
+
+            const obsHeight = 60;
+            doc.setDrawColor(150, 150, 150);
+            doc.setLineWidth(0.5);
+            doc.rect(margin, yPos, pageWidth - 2 * margin, obsHeight);
+
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.2);
+            for (let i = 1; i <= 10; i++) {
+                const lineY = yPos + (i * 5.5);
+                if (lineY < yPos + obsHeight - 5) {
+                    doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
+                }
+            }
+
+            yPos += obsHeight + 20;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Assinaturas:', margin, yPos);
+            yPos += 15;
+
+            const signatureWidth = 60;
+            doc.setDrawColor(100, 100, 100);
+            doc.setLineWidth(0.5);
+            
+            doc.line(margin, yPos, margin + signatureWidth, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(80, 80, 80);
+            doc.text('Responsável pela Escala', margin, yPos + 5);
+            doc.text('Data: ___/___/______', margin, yPos + 10);
+
+            doc.line(pageWidth - margin - signatureWidth, yPos, pageWidth - margin, yPos);
+            doc.text('Supervisor/Gerente', pageWidth - margin - signatureWidth, yPos + 5);
+            doc.text('Data: ___/___/______', pageWidth - margin - signatureWidth, yPos + 10);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(120, 120, 120);
+            doc.text('MOVISAFE - Segurança Corporativa e Empresarial', margin, pageHeight - 15);
+            doc.text(`Página 1`, pageWidth - margin - 15, pageHeight - 15);
+
+            const monthName = getMonthName(month);
+            doc.save(`MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
+            
+            console.log(`✅ PDF exportado: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
+            alert(`✅ PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
         }
-    }
 
-    yPos += obsHeight + 20;
-
-    // Assinaturas
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(30, 60, 114);
-    doc.text('Assinaturas:', margin, yPos);
-    yPos += 15;
-
-    // Linhas de assinatura
-    const signatureWidth = 60;
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.5);
-    
-    // Responsável
-    doc.line(margin, yPos, margin + signatureWidth, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    doc.text('Responsável pela Escala', margin, yPos + 5);
-    doc.text('Data: ___/___/______', margin, yPos + 10);
-
-    // Supervisor
-    doc.line(pageWidth - margin - signatureWidth, yPos, pageWidth - margin, yPos);
-    doc.text('Supervisor/Gerente', pageWidth - margin - signatureWidth, yPos + 5);
-    doc.text('Data: ___/___/______', pageWidth - margin - signatureWidth, yPos + 10);
-
-    // Rodapé
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text('MOVISAFE - Segurança Corporativa e Empresarial', margin, pageHeight - 15);
-    doc.text(`Página 1`, pageWidth - margin - 15, pageHeight - 15);
-
-    // Salvar
-    const monthName = getMonthName(month);
-    doc.save(`MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
-    
-    alert(`✅ PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
-}
         // Funções auxiliares
         function getDaysInMonth(year, month) {
             return new Date(year, month, 0).getDate();
@@ -1113,6 +1122,7 @@ function exportToPDF() {
             allOperators.forEach(operator => {
                 if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
             });
+            console.log('✅ Dados de horas extras inicializados');
         }
 
         function updateOvertime(operator, type, value) {
@@ -1121,6 +1131,7 @@ function exportToPDF() {
             if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
             const parsedValue = parseFloat(value);
             overtimeData[selectedMonth][operator][type] = isNaN(parsedValue) ? 0 : Math.max(0, parsedValue);
+            console.log(`✅ Horas extras atualizadas para ${operator}: ${type} = ${parsedValue}`);
             updateDashboard();
         }
 
@@ -1130,6 +1141,7 @@ function exportToPDF() {
         }
 
         function updateScaleInfo() {
+            console.log('🔄 Atualizando informações da escala...');
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const firstDayIndex = getDayIndexFromReference(year, month, 1);
@@ -1143,6 +1155,7 @@ function exportToPDF() {
                 <p><strong>Referência:</strong> 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)</p>
                 <p><strong>Luis Butter:</strong> Diurno apenas em dias úteis</p>
             `;
+            console.log('✅ Informações da escala atualizadas');
         }
 
         function getMonthName(month) {
@@ -1151,6 +1164,7 @@ function exportToPDF() {
         }
 
         function updateCalendar() {
+            console.log('📅 Atualizando calendário...');
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
@@ -1163,7 +1177,7 @@ function exportToPDF() {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayOfWeek = getDayOfWeek(year, month, day);
                 const isWeekendDay = isWeekend(year, month, day);
-                headerRow.innerHTML += `<th class="day-header ${isWeekendDay ? 'week-egyptian-blue-500' : ''}">${day.toString().padStart(2, '0')}<br>${dayOfWeek}</th>`;
+                headerRow.innerHTML += `<th class="day-header ${isWeekendDay ? 'weekend' : ''}">${day.toString().padStart(2, '0')}<br>${dayOfWeek}</th>`;
             }
             table.appendChild(headerRow);
 
@@ -1193,9 +1207,12 @@ function exportToPDF() {
             initializeOvertimeData();
             updateScaleInfo();
             updateDashboard();
+            console.log('✅ Calendário atualizado com sucesso');
+            document.querySelector('.loading-message').style.display = 'none';
         }
 
         function showCellSelector(cellId, event) {
+            console.log(`🔍 Mostrando seletor para célula ${cellId}`);
             event.stopPropagation();
             currentCellId = cellId;
             const selector = document.getElementById('cellSelector');
@@ -1209,6 +1226,7 @@ function exportToPDF() {
 
         function setCellValue(value) {
             if (!currentCellId) return;
+            console.log(`✅ Definindo valor ${value} para célula ${currentCellId}`);
             const cell = document.getElementById(currentCellId);
             const [operator, day] = currentCellId.split('-');
             cell.textContent = value;
@@ -1221,6 +1239,7 @@ function exportToPDF() {
         }
 
         function updateDashboard() {
+            console.log('📊 Atualizando dashboard...');
             const allOperators = [...operators, 'Luis Butter'];
             const dashboardContent = document.getElementById('dashboardContent');
             dashboardContent.innerHTML = '';
@@ -1251,9 +1270,11 @@ function exportToPDF() {
                 `;
                 dashboardContent.appendChild(operatorDiv);
             });
+            console.log('✅ Dashboard atualizado com sucesso');
         }
 
         function autoFillMonth() {
+            console.log('🔄 Preenchendo mês automaticamente...');
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
@@ -1281,10 +1302,12 @@ function exportToPDF() {
             const firstDayOperators = firstDaySchedule === 0
                 ? "Heitor Cunha (D) + Jonathan Armando (N)"
                 : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
+            console.log('✅ Mês preenchido automaticamente');
             alert(`Mês preenchido automaticamente!\n\nContinuidade mantida:\n- Primeiro dia: ${firstDayOperators}\n- Alternância diária entre as duplas\n- Luis Butter (D) apenas em dias úteis`);
         }
 
         function updateCalendarDisplay() {
+            console.log('🔄 Atualizando exibição do calendário...');
             const allOperators = [...operators, 'Luis Butter'];
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
@@ -1302,9 +1325,11 @@ function exportToPDF() {
                     }
                 }
             });
+            console.log('✅ Exibição do calendário atualizada');
         }
 
         function clearMonth() {
+            console.log('🗑️ Limpando mês...');
             const allOperators = [...operators, 'Luis Butter'];
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
@@ -1324,6 +1349,7 @@ function exportToPDF() {
 
             initializeOvertimeData();
             updateDashboard();
+            console.log('✅ Mês limpo com sucesso');
         }
 
         // Fechar seletor ao clicar fora
@@ -1335,8 +1361,14 @@ function exportToPDF() {
             }
         });
 
-        // Inicializar calendário
-        updateCalendar();
+        // Inicializar calendário com verificação de erros
+        try {
+            console.log('🚀 Inicializando aplicação...');
+            updateCalendar();
+        } catch (error) {
+            console.error('❌ Erro ao inicializar aplicação:', error);
+            alert('❌ Erro ao inicializar a aplicação. Verifique o console (F12) para detalhes.');
+        }
     </script>
 </body>
 </html>
