@@ -333,7 +333,7 @@
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
         .day-cell.N { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
         .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
-        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, # Дэ2FA2 100%); color: white; }
+        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -389,6 +389,26 @@
             font-size: 16px;
         }
 
+        .auto-save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .auto-save-indicator.show {
+            opacity: 1;
+        }
+
         @media (max-width: 1200px) {
             .main-content {
                 flex-direction: column;
@@ -420,6 +440,7 @@
             <button class="btn btn-secondary" onclick="saveToSheet()">💾 Salvar Planilha</button>
             <button class="btn btn-secondary" onclick="exportToPDF()">📄 Exportar PDF</button>
             <button class="btn btn-secondary" onclick="clearMonth()">🗑️ Limpar Mês</button>
+            <button class="btn btn-secondary" onclick="clearAllData()">🗑️ Limpar Dados Salvos</button>
         </div>
 
         <div class="main-content">
@@ -488,6 +509,9 @@
         <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
     </div>
 
+    <!-- Indicador de auto-save -->
+    <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
+
     <script>
         console.log('✅ Página carregada. Verificando inicialização...');
 
@@ -510,6 +534,76 @@
         const currentYear = currentDate.getFullYear();
         document.getElementById('monthSelect').value = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
         console.log(`✅ Mês inicial configurado: ${document.getElementById('monthSelect').value}`);
+
+        // Funções de persistência de dados
+        function saveToLocalStorage() {
+            try {
+                const selectedMonth = document.getElementById('monthSelect').value;
+                const dataToSave = {
+                    scheduleData: scheduleData,
+                    overtimeData: overtimeData,
+                    lastSelectedMonth: selectedMonth,
+                    lastSaved: new Date().toISOString()
+                };
+                localStorage.setItem('movisafe_data', JSON.stringify(dataToSave));
+                console.log('✅ Dados salvos no localStorage');
+            } catch (error) {
+                console.error('❌ Erro ao salvar no localStorage:', error);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('movisafe_data');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    scheduleData = data.scheduleData || {};
+                    overtimeData = data.overtimeData || {};
+                    
+                    // Restaurar mês selecionado
+                    if (data.lastSelectedMonth) {
+                        document.getElementById('monthSelect').value = data.lastSelectedMonth;
+                    }
+                    
+                    console.log('✅ Dados carregados do localStorage');
+                    console.log(`📅 Último salvamento: ${new Date(data.lastSaved).toLocaleString('pt-BR')}`);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('❌ Erro ao carregar do localStorage:', error);
+                return false;
+            }
+        }
+
+        function clearLocalStorage() {
+            try {
+                localStorage.removeItem('movisafe_data');
+                console.log('✅ Dados do localStorage limpos');
+            } catch (error) {
+                console.error('❌ Erro ao limpar localStorage:', error);
+            }
+        }
+
+        // Auto-save sempre que houver mudanças
+        function autoSave() {
+            saveToLocalStorage();
+            
+            // Mostrar indicador visual
+            const indicator = document.getElementById('autoSaveIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ Tem certeza que deseja limpar TODOS os dados salvos?\n\nEsta ação não pode ser desfeita!')) {
+                clearLocalStorage();
+                clearMonth();
+                alert('✅ Todos os dados foram limpos!');
+            }
+        }
 
         // Função para inicializar a API do Google Sheets
         function initGoogleSheetsAPI() {
@@ -753,6 +847,7 @@
                 }
 
                 updateDashboard();
+                autoSave(); // Salvar dados carregados localmente
                 alert('✅ Dados carregados com sucesso do Google Sheets!');
             } catch (error) {
                 console.error('❌ Erro ao carregar:', error);
@@ -1040,7 +1135,7 @@
 
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.2);
-            for (let i = 1; i <= 10; i++) {
+                        for (let i = 1; i <= 10; i++) {
                 const lineY = yPos + (i * 5.5);
                 if (lineY < yPos + obsHeight - 5) {
                     doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
@@ -1133,6 +1228,7 @@
             overtimeData[selectedMonth][operator][type] = isNaN(parsedValue) ? 0 : Math.max(0, parsedValue);
             console.log(`✅ Horas extras atualizadas para ${operator}: ${type} = ${parsedValue}`);
             updateDashboard();
+            autoSave(); // Auto-save após mudança
         }
 
         function getOvertime(operator, type) {
@@ -1195,17 +1291,28 @@
                 table.appendChild(row);
             });
 
-            // Inicializar dados
-            scheduleData = {};
-            allOperators.forEach(operator => {
-                scheduleData[operator] = {};
-                for (let day = 1; day <= daysInMonth; day++) {
-                    scheduleData[operator][day] = '';
-                }
-            });
+            // Verificar se há dados salvos para este mês
+            let dataLoaded = false;
+            if (scheduleData && scheduleData[allOperators[0]] && scheduleData[allOperators[0]][1] !== undefined) {
+                dataLoaded = true;
+            }
+
+            // Se não há dados salvos, inicializar estrutura vazia
+            if (!dataLoaded) {
+                if (!scheduleData) scheduleData = {};
+                allOperators.forEach(operator => {
+                    if (!scheduleData[operator]) scheduleData[operator] = {};
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        if (scheduleData[operator][day] === undefined) {
+                            scheduleData[operator][day] = '';
+                        }
+                    }
+                });
+            }
 
             initializeOvertimeData();
             updateScaleInfo();
+            updateCalendarDisplay();
             updateDashboard();
             console.log('✅ Calendário atualizado com sucesso');
             document.querySelector('.loading-message').style.display = 'none';
@@ -1236,6 +1343,7 @@
             document.getElementById('cellSelector').style.display = 'none';
             currentCellId = null;
             updateDashboard();
+            autoSave(); // Auto-save após mudança
         }
 
         function updateDashboard() {
@@ -1297,6 +1405,7 @@
 
             updateCalendarDisplay();
             updateDashboard();
+            autoSave(); // Auto-save após preenchimento automático
             const firstDayIndex = getDayIndexFromReference(year, month, 1);
             const firstDaySchedule = getScheduleForDay(firstDayIndex);
             const firstDayOperators = firstDaySchedule === 0
@@ -1336,6 +1445,7 @@
             const daysInMonth = getDaysInMonth(year, month);
 
             allOperators.forEach(operator => {
+                if (!scheduleData[operator]) scheduleData[operator] = {};
                 for (let day = 1; day <= daysInMonth; day++) {
                     scheduleData[operator][day] = '';
                     const cellId = `${operator}-${day}`;
@@ -1349,6 +1459,7 @@
 
             initializeOvertimeData();
             updateDashboard();
+            autoSave(); // Auto-save após limpeza
             console.log('✅ Mês limpo com sucesso');
         }
 
@@ -1361,10 +1472,23 @@
             }
         });
 
-        // Inicializar calendário com verificação de erros
+        // Inicializar calendário com verificação de erros e carregamento de dados
         try {
             console.log('🚀 Inicializando aplicação...');
+            
+            // Tentar carregar dados salvos
+            const dataLoaded = loadFromLocalStorage();
+            if (dataLoaded) {
+                console.log('📂 Dados anteriores encontrados e carregados');
+            } else {
+                console.log('📝 Nenhum dado anterior encontrado, iniciando limpo');
+            }
+            
             updateCalendar();
+            
+            if (dataLoaded) {
+                alert('✅ Dados anteriores carregados com sucesso!\n\nSeus dados foram restaurados automaticamente.');
+            }
         } catch (error) {
             console.error('❌ Erro ao inicializar aplicação:', error);
             alert('❌ Erro ao inicializar a aplicação. Verifique o console (F12) para detalhes.');
@@ -1372,3 +1496,4 @@
     </script>
 </body>
 </html>
+            
