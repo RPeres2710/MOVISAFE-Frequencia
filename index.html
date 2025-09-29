@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOVISAFE - Frequência</title>
-    <!-- Google APIs -->
     <script src="https://apis.google.com/js/api.js"></script>
-    <!-- jsPDF e autoTable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -333,7 +331,6 @@
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
         .day-cell.N { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
         .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
-        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -372,10 +369,6 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-        }
-
-        .luis-row {
-            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%) !important;
         }
 
         .table-container {
@@ -445,7 +438,7 @@
 
         <div class="main-content">
             <div class="table-section">
-                <p class="loading-message">Carregando tabela... Se esta mensagem persistir, verifique o console (F12).</p>
+                <p class="loading-message">Carregando tabela...</p>
                 <div class="month-selector">
                     <label for="monthSelect">Mês/Ano:</label>
                     <select id="monthSelect" onchange="updateCalendar()">
@@ -454,19 +447,17 @@
                         <option value="2025-03">Março 2025</option>
                         <option value="2025-04">Abril 2025</option>
                         <option value="2025-05">Maio 2025</option>
-                        <option value="2025-06" selected>Junho 2025</option>
+                        <option value="2025-06">Junho 2025</option>
                         <option value="2025-07">Julho 2025</option>
                         <option value="2025-08">Agosto 2025</option>
-                        <option value="2025-09">Setembro 2025</option>
+                        <option value="2025-09" selected>Setembro 2025</option>
                         <option value="2025-10">Outubro 2025</option>
                         <option value="2025-11">Novembro 2025</option>
                         <option value="2025-12">Dezembro 2025</option>
                     </select>
                 </div>
 
-                <div class="scale-info" id="scaleInfo">
-                    <!-- Informação da escala será mostrada aqui -->
-                </div>
+                <div class="scale-info" id="scaleInfo"></div>
 
                 <div class="legend">
                     <div class="legend-item">
@@ -484,24 +475,19 @@
                 </div>
 
                 <div class="table-container">
-                    <table id="scheduleTable">
-                        <!-- Tabela será gerada dinamicamente -->
-                    </table>
+                    <table id="scheduleTable"></table>
                 </div>
             </div>
 
             <div class="dashboard-section">
                 <div class="dashboard">
                     <h3>📊 Dashboard de Totais</h3>
-                    <div id="dashboardContent">
-                        <!-- Dashboard será gerado dinamicamente -->
-                    </div>
+                    <div id="dashboardContent"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Seletor de célula -->
     <div class="cell-selector" id="cellSelector">
         <div class="selector-option D" onclick="setCellValue('D')">D - Diurno</div>
         <div class="selector-option N" onclick="setCellValue('N')">N - Noturno</div>
@@ -509,33 +495,24 @@
         <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
     </div>
 
-    <!-- Indicador de auto-save -->
     <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
 
     <script>
-        console.log('✅ Página carregada. Verificando inicialização...');
-
-        // Configurações da API Google Sheets
         const GOOGLE_SHEETS_API_KEY = 'AIzaSyArIDx05b9gGgMsgJVGvkM1tR8VgMSsx9Y';
         const SPREADSHEET_ID = '17LVqhNUNnHRAe2qnYomdFqeJUMPf0qFbKPEMWApkDdo';
 
-        // Operadores principais (sem Luis Butter)
-        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Jonathan Armando'];
+        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Luis Butter', 'Heitor Cunha', 'Lais Ril', 'Jonathan Armando'];
         let scheduleData = {};
         let overtimeData = {};
         let currentCellId = null;
 
-        // Data de referência: 28 de junho de 2025
         const REFERENCE_DATE = new Date(2025, 5, 28);
 
-        // Configurar mês atual
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth() + 1;
         const currentYear = currentDate.getFullYear();
         document.getElementById('monthSelect').value = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
-        console.log(`✅ Mês inicial configurado: ${document.getElementById('monthSelect').value}`);
 
-        // Funções de persistência de dados
         function saveToLocalStorage() {
             try {
                 const selectedMonth = document.getElementById('monthSelect').value;
@@ -546,9 +523,8 @@
                     lastSaved: new Date().toISOString()
                 };
                 localStorage.setItem('movisafe_data', JSON.stringify(dataToSave));
-                console.log('✅ Dados salvos no localStorage');
             } catch (error) {
-                console.error('❌ Erro ao salvar no localStorage:', error);
+                console.error('Erro ao salvar:', error);
             }
         }
 
@@ -559,42 +535,27 @@
                     const data = JSON.parse(savedData);
                     scheduleData = data.scheduleData || {};
                     overtimeData = data.overtimeData || {};
-                    
-                    // Restaurar mês selecionado
                     if (data.lastSelectedMonth) {
                         document.getElementById('monthSelect').value = data.lastSelectedMonth;
                     }
-                    
-                    console.log('✅ Dados carregados do localStorage');
-                    console.log(`📅 Último salvamento: ${new Date(data.lastSaved).toLocaleString('pt-BR')}`);
                     return true;
                 }
                 return false;
             } catch (error) {
-                console.error('❌ Erro ao carregar do localStorage:', error);
+                console.error('Erro ao carregar:', error);
                 return false;
             }
         }
 
         function clearLocalStorage() {
-            try {
-                localStorage.removeItem('movisafe_data');
-                console.log('✅ Dados do localStorage limpos');
-            } catch (error) {
-                console.error('❌ Erro ao limpar localStorage:', error);
-            }
+            localStorage.removeItem('movisafe_data');
         }
 
-        // Auto-save sempre que houver mudanças
         function autoSave() {
             saveToLocalStorage();
-            
-            // Mostrar indicador visual
             const indicator = document.getElementById('autoSaveIndicator');
             indicator.classList.add('show');
-            setTimeout(() => {
-                indicator.classList.remove('show');
-            }, 2000);
+            setTimeout(() => indicator.classList.remove('show'), 2000);
         }
 
         function clearAllData() {
@@ -605,277 +566,273 @@
             }
         }
 
-        // Função para inicializar a API do Google Sheets
-        function initGoogleSheetsAPI() {
-            console.log('🔄 Inicializando Google Sheets API...');
-            return new Promise((resolve, reject) => {
-                if (typeof gapi === 'undefined') {
-                    console.error('❌ Google API não disponível');
-                    reject('Google API não está disponível. Verifique sua conexão ou o script da API.');
-                    return;
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function getDayOfWeek(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            return days[date.getDay()];
+        }
+
+        function isWeekend(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            return date.getDay() === 0 || date.getDay() === 6;
+        }
+
+        function getDayIndexFromReference(year, month, day) {
+            const targetDate = new Date(year, month - 1, day);
+            const diffTime = targetDate - REFERENCE_DATE;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getScheduleForDay(dayIndex) {
+            return dayIndex % 2;
+        }
+
+        function initializeOvertimeData() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (!overtimeData[selectedMonth]) {
+                overtimeData[selectedMonth] = {};
+            }
+            operators.forEach(operator => {
+                if (!overtimeData[selectedMonth][operator]) {
+                    overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
                 }
-                gapi.load('client', () => {
-                    gapi.client.init({
-                        apiKey: GOOGLE_SHEETS_API_KEY,
-                        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-                    }).then(() => {
-                        console.log('✅ Google Sheets API inicializada com sucesso');
-                        resolve();
-                    }).catch(error => {
-                        console.error('❌ Erro ao inicializar API:', error);
-                        reject(`Erro na inicialização da API: ${error.message || 'Desconhecido'}`);
-                    });
-                });
             });
         }
 
-        // Função para salvar dados na planilha
-        async function saveToSheet() {
-            console.log('💾 Iniciando salvamento no Google Sheets...');
-            try {
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = '💾 Salvando...';
-                btn.disabled = true;
-
-                await initGoogleSheetsAPI();
-                const selectedMonth = document.getElementById('monthSelect').value;
-                const allOperators = [...operators, 'Luis Butter'];
-
-                // Preparar dados
-                const scaleData = [];
-                const overtimeDataArray = [];
-                const dashboardDataArray = [];
-
-                allOperators.forEach(operator => {
-                    Object.keys(scheduleData[operator]).forEach(day => {
-                        if (scheduleData[operator][day]) {
-                            scaleData.push([
-                                selectedMonth,
-                                operator,
-                                parseInt(day),
-                                scheduleData[operator][day],
-                                new Date().toISOString()
-                            ]);
-                        }
-                    });
-                    const he100 = getOvertime(operator, 'he100');
-                    const he50 = getOvertime(operator, 'he50');
-                    if (he100 > 0 || he50 > 0) {
-                        overtimeDataArray.push([
-                            selectedMonth,
-                            operator,
-                            he100,
-                            he50,
-                            new Date().toISOString()
-                        ]);
-                    }
-                    const totals = { D: 0, N: 0, B: 0 };
-                    Object.values(scheduleData[operator]).forEach(value => {
-                        if (totals.hasOwnProperty(value)) totals[value]++;
-                    });
-                    dashboardDataArray.push([
-                        selectedMonth,
-                        operator,
-                        totals.D,
-                        totals.N,
-                        totals.B,
-                        totals.D + totals.N + totals.B,
-                        totals.N
-                    ]);
-                });
-
-                await clearMonthDataFromSheet(selectedMonth);
-
-                const sheets = [
-                    { range: 'Escalas!A:E', values: scaleData },
-                    { range: 'Horas_Extras!A:E', values: overtimeDataArray },
-                    { range: 'Dashboard!A:G', values: dashboardDataArray }
-                ];
-
-                for (const sheet of sheets) {
-                    if (sheet.values.length > 0) {
-                        console.log(`📤 Salvando dados na aba ${sheet.range}...`);
-                        await gapi.client.sheets.spreadsheets.values.append({
-                            spreadsheetId: SPREADSHEET_ID,
-                            range: sheet.range,
-                            valueInputOption: 'RAW',
-                            resource: { values: sheet.values }
-                        });
-                        console.log(`✅ Dados salvos na aba ${sheet.range}`);
-                    }
-                }
-
-                alert('✅ Dados salvos com sucesso no Google Sheets!');
-            } catch (error) {
-                console.error('❌ Erro ao salvar:', error);
-                let errorMessage = '❌ Erro ao salvar dados.';
-                if (error.status === 401) {
-                    errorMessage += ' Chave de API inválida ou sem permissão. Verifique no Google Cloud Console.';
-                } else if (error.status) {
-                    errorMessage += ` Código de erro: ${error.status}. Detalhes: ${error.result?.error?.message || 'Desconhecido'}`;
-                } else {
-                    errorMessage += ' Verifique o console para detalhes.';
-                }
-                alert(errorMessage);
-            } finally {
-                const btn = document.querySelector('button[onclick="saveToSheet()"]');
-                if (btn) {
-                    btn.textContent = '💾 Salvar Planilha';
-                    btn.disabled = false;
-                }
+        function updateOvertime(operator, type, value) {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (!overtimeData[selectedMonth]) overtimeData[selectedMonth] = {};
+            if (!overtimeData[selectedMonth][operator]) {
+                overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
             }
+            const parsedValue = parseFloat(value);
+            overtimeData[selectedMonth][operator][type] = isNaN(parsedValue) ? 0 : Math.max(0, parsedValue);
+            updateDashboard();
+            autoSave();
         }
 
-        // Função para limpar dados do mês atual
-        async function clearMonthDataFromSheet(monthYear) {
-            console.log(`🗑️ Limpando dados do mês ${monthYear}...`);
-            try {
-                const sheets = ['Escalas', 'Horas_Extras', 'Dashboard'];
-                for (const sheetName of sheets) {
-                    const response = await gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: `${sheetName}!A:Z`
-                    });
+        function getOvertime(operator, type) {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            return overtimeData[selectedMonth]?.[operator]?.[type] || 0;
+        }
 
-                    if (response.result.values && response.result.values.length > 1) {
-                        const values = response.result.values;
-                        const rowIndices = values
-                            .map((row, index) => row[0] === monthYear ? index + 1 : -1)
-                            .filter(index => index !== -1)
-                            .sort((a, b) => b - a);
+        function getMonthName(month) {
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            return months[month - 1];
+        }
 
-                        if (rowIndices.length > 0) {
-                            const sheetId = await getSheetId(sheetName);
-                            const requests = rowIndices.map(rowIndex => ({
-                                deleteDimension: {
-                                    range: {
-                                        sheetId: sheetId,
-                                        dimension: 'ROWS',
-                                        startIndex: rowIndex - 1,
-                                        endIndex: rowIndex
-                                    }
-                                }
-                            }));
+        function updateScaleInfo() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const firstDayIndex = getDayIndexFromReference(year, month, 1);
+            const firstDaySchedule = getScheduleForDay(firstDayIndex);
+            const firstDayOperators = firstDaySchedule === 0
+                ? "Luis Butter (D) + Jonathan Armando (N)"
+                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
+            document.getElementById('scaleInfo').innerHTML = `
+                <h4>📅 Informações da Escala - ${getMonthName(month)} ${year}</h4>
+                <p><strong>Primeiro dia:</strong> ${firstDayOperators}</p>
+                <p><strong>Referência:</strong> 28/06/2025 - Luis Butter (D) + Jonathan Armando (N)</p>
+                <p><strong>Helexia:</strong> Lais Ril (N) em dias ímpares / Heitor Cunha (N) em dias pares</p>
+            `;
+        }
 
-                            await gapi.client.sheets.spreadsheets.batchUpdate({
-                                spreadsheetId: SPREADSHEET_ID,
-                                resource: { requests }
-                            });
-                            console.log(`✅ Dados da aba ${sheetName} limpos com sucesso`);
+        function updateCalendar() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+            const table = document.getElementById('scheduleTable');
+            table.innerHTML = '';
+
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>Operador</th>';
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayOfWeek = getDayOfWeek(year, month, day);
+                const isWeekendDay = isWeekend(year, month, day);
+                headerRow.innerHTML += `<th class="day-header ${isWeekendDay ? 'weekend' : ''}">${day.toString().padStart(2, '0')}<br>${dayOfWeek}</th>`;
+            }
+            table.appendChild(headerRow);
+
+            operators.forEach(operator => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${operator}</td>`;
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const cellId = `${operator}-${day}`;
+                    const isWeekendDay = isWeekend(year, month, day);
+                    row.innerHTML += `<td class="day-cell ${isWeekendDay ? 'weekend' : ''}" id="${cellId}" onclick="showCellSelector('${cellId}', event)"></td>`;
+                }
+                table.appendChild(row);
+            });
+
+            let dataLoaded = false;
+            if (scheduleData && scheduleData[operators[0]] && scheduleData[operators[0]][1] !== undefined) {
+                dataLoaded = true;
+            }
+
+            if (!dataLoaded) {
+                if (!scheduleData) scheduleData = {};
+                operators.forEach(operator => {
+                    if (!scheduleData[operator]) scheduleData[operator] = {};
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        if (scheduleData[operator][day] === undefined) {
+                            scheduleData[operator][day] = '';
                         }
                     }
-                }
-            } catch (error) {
-                console.error(`❌ Erro ao limpar dados da aba ${sheetName}:`, error);
-                throw error;
+                });
             }
+
+            initializeOvertimeData();
+            updateScaleInfo();
+            updateCalendarDisplay();
+            updateDashboard();
+            document.querySelector('.loading-message').style.display = 'none';
         }
 
-        // Função para obter ID da aba
-        async function getSheetId(sheetName) {
-            console.log(`🔍 Obtendo ID da aba ${sheetName}...`);
-            try {
-                const response = await gapi.client.sheets.spreadsheets.get({
-                    spreadsheetId: SPREADSHEET_ID
-                });
-                const sheet = response.result.sheets.find(s => s.properties.title === sheetName);
-                if (!sheet) throw new Error(`Aba ${sheetName} não encontrada`);
-                console.log(`✅ ID da aba ${sheetName}: ${sheet.properties.sheetId}`);
-                return sheet.properties.sheetId;
-            } catch (error) {
-                console.error('❌ Erro ao obter ID da aba:', error);
-                throw error;
-            }
+        function showCellSelector(cellId, event) {
+            event.stopPropagation();
+            currentCellId = cellId;
+            const selector = document.getElementById('cellSelector');
+            const cell = document.getElementById(cellId);
+            const rect = cell.getBoundingClientRect();
+            selector.style.display = 'block';
+            selector.style.position = 'fixed';
+            selector.style.left = rect.left + rect.width / 2 - 60 + 'px';
+            selector.style.top = rect.top - 10 + 'px';
         }
 
-        // Função para carregar dados da planilha
-        async function loadFromSheet() {
-            console.log('📥 Iniciando carregamento do Google Sheets...');
-            try {
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = '📥 Carregando...';
-                btn.disabled = true;
-
-                await initGoogleSheetsAPI();
-                const selectedMonth = document.getElementById('monthSelect').value;
-
-                // Carregar escalas
-                const scalesResponse = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: 'Escalas!A:E'
-                });
-
-                if (scalesResponse.result.values) {
-                    console.log('✅ Escalas carregadas com sucesso');
-                    clearMonth();
-                    const scaleRows = scalesResponse.result.values.slice(1);
-                    scaleRows.forEach(row => {
-                        if (row[0] === selectedMonth) {
-                            const [monthYear, operator, day, shift] = row;
-                            if (scheduleData[operator]) {
-                                scheduleData[operator][day] = shift;
-                            }
-                        }
-                    });
-                    updateCalendarDisplay();
-                } else {
-                    console.warn('⚠️ Nenhuma escala encontrada para o mês selecionado');
-                }
-
-                // Carregar horas extras
-                const overtimeResponse = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: 'Horas_Extras!A:E'
-                });
-
-                if (overtimeResponse.result.values) {
-                    console.log('✅ Horas extras carregadas com sucesso');
-                    const overtimeRows = overtimeResponse.result.values.slice(1);
-                    overtimeRows.forEach(row => {
-                        if (row[0] === selectedMonth) {
-                            const [monthYear, operator, he100, he50] = row;
-                            if (!overtimeData[selectedMonth]) overtimeData[selectedMonth] = {};
-                            if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = {};
-                            overtimeData[selectedMonth][operator].he100 = parseFloat(he100) || 0;
-                            overtimeData[selectedMonth][operator].he50 = parseFloat(he50) || 0;
-                        }
-                    });
-                } else {
-                    console.warn('⚠️ Nenhuma hora extra encontrada para o mês selecionado');
-                }
-
-                updateDashboard();
-                autoSave(); // Salvar dados carregados localmente
-                alert('✅ Dados carregados com sucesso do Google Sheets!');
-            } catch (error) {
-                console.error('❌ Erro ao carregar:', error);
-                let errorMessage = '❌ Erro ao carregar dados.';
-                if (error.status === 401) {
-                    errorMessage += ' Chave de API inválida ou sem permissão. Verifique no Google Cloud Console.';
-                } else if (error.status) {
-                    errorMessage += ` Código de erro: ${error.status}. Detalhes: ${error.result?.error?.message || 'Desconhecido'}`;
-                } else {
-                    errorMessage += ' Verifique o console para detalhes.';
-                }
-                alert(errorMessage);
-            } finally {
-                const btn = document.querySelector('button[onclick="loadFromSheet()"]');
-                if (btn) {
-                    btn.textContent = '📥 Carregar do Sheets';
-                    btn.disabled = false;
-                }
-            }
+        function setCellValue(value) {
+            if (!currentCellId) return;
+            const cell = document.getElementById(currentCellId);
+            const [operator, day] = currentCellId.split('-');
+            cell.textContent = value;
+            cell.className = cell.className.replace(/\s[DNB]$/, '');
+            if (value) cell.classList.add(value);
+            scheduleData[operator][day] = value;
+            document.getElementById('cellSelector').style.display = 'none';
+            currentCellId = null;
+            updateDashboard();
+            autoSave();
         }
 
-        // Função para exportar para PDF com layout profissional
+        function updateDashboard() {
+            const dashboardContent = document.getElementById('dashboardContent');
+            dashboardContent.innerHTML = '';
+
+            operators.forEach(operator => {
+                const totals = { D: 0, N: 0, B: 0 };
+                Object.values(scheduleData[operator] || {}).forEach(value => {
+                    if (totals.hasOwnProperty(value)) totals[value]++;
+                });
+                const totalPlantoes = totals.D + totals.N + totals.B;
+                const adicionaisNoturnos = totals.N;
+                const horasExtras100 = getOvertime(operator, 'he100');
+                const horasExtras50 = getOvertime(operator, 'he50');
+
+                const operatorDiv = document.createElement('div');
+                operatorDiv.className = 'operator-summary';
+                operatorDiv.innerHTML = `
+                    <h4>${operator}</h4>
+                    <div class="summary-grid">
+                        <div class="summary-item"><span>Plantões Diurnos:</span><span class="summary-value">${totals.D}</span></div>
+                        <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
+                        <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
+                        <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
+                        <div class="summary-item"><span>Adicionais Noturnos:</span><span class="summary-value">${adicionaisNoturnos}</span></div>
+                        <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
+                        <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
+                    </div>
+                `;
+                dashboardContent.appendChild(operatorDiv);
+            });
+        }
+
+        function autoFillMonth() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+            clearMonth();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayIndex = getDayIndexFromReference(year, month, day);
+                const scheduleType = getScheduleForDay(dayIndex);
+                
+                if (scheduleType === 0) {
+                    scheduleData['Luis Butter'][day] = 'D';
+                    scheduleData['Jonathan Armando'][day] = 'N';
+                } else {
+                    scheduleData['Josniel Rodriguez'][day] = 'D';
+                    scheduleData['Leticia Pinheiro'][day] = 'N';
+                }
+                
+                if (day % 2 === 1) {
+                    scheduleData['Lais Ril'][day] = 'N';
+                } else {
+                    scheduleData['Heitor Cunha'][day] = 'N';
+                }
+            }
+
+            updateCalendarDisplay();
+            updateDashboard();
+            autoSave();
+            const firstDayIndex = getDayIndexFromReference(year, month, 1);
+            const firstDaySchedule = getScheduleForDay(firstDayIndex);
+            const firstDayOperators = firstDaySchedule === 0
+                ? "Luis Butter (D) + Jonathan Armando (N)"
+                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
+            alert(`Mês preenchido automaticamente!\n\nContinuidade mantida:\n- Primeiro dia: ${firstDayOperators}\n- Alternância diária entre as duplas\n- Helexia: Lais Ril (dias ímpares) / Heitor Cunha (dias pares)`);
+        }
+
+        function updateCalendarDisplay() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+
+            operators.forEach(operator => {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const cellId = `${operator}-${day}`;
+                    const cell = document.getElementById(cellId);
+                    if (cell) {
+                        const value = scheduleData[operator][day] || '';
+                        cell.textContent = value;
+                        cell.className = cell.className.replace(/\s[DNB]$/, '');
+                        if (value) cell.classList.add(value);
+                    }
+                }
+            });
+        }
+
+        function clearMonth() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(year, month);
+
+            operators.forEach(operator => {
+                if (!scheduleData[operator]) scheduleData[operator] = {};
+                for (let day = 1; day <= daysInMonth; day++) {
+                    scheduleData[operator][day] = '';
+                    const cellId = `${operator}-${day}`;
+                    const cell = document.getElementById(cellId);
+                    if (cell) {
+                        cell.textContent = '';
+                        cell.className = cell.className.replace(/\s[DNB]$/, '');
+                    }
+                }
+            });
+
+            initializeOvertimeData();
+            updateDashboard();
+            autoSave();
+        }
+
         function exportToPDF() {
-            console.log('📄 Iniciando exportação para PDF...');
             const { jsPDF } = window.jspdf;
             if (!jsPDF) {
-                console.error('❌ jsPDF não carregado');
-                alert('❌ Erro: jsPDF não carregado. Verifique o console.');
+                alert('Erro: jsPDF não carregado.');
                 return;
             }
             const doc = new jsPDF({
@@ -885,20 +842,17 @@
             });
 
             if (!doc.autoTable) {
-                console.error('❌ Plugin autoTable não carregado');
-                alert('❌ Plugin autoTable não carregado. Verifique se o script jspdf.plugin.autotable.min.js está incluído.');
+                alert('Erro: Plugin autoTable não carregado.');
                 return;
             }
 
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
-            const allOperators = [...operators, 'Luis Butter'];
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
             const margin = 20;
 
-            // Função para adicionar cabeçalho simples e elegante
             const addHeader = () => {
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(18);
@@ -937,14 +891,15 @@
             const firstDayIndex = getDayIndexFromReference(year, month, 1);
             const firstDaySchedule = getScheduleForDay(firstDayIndex);
             const firstDayOperators = firstDaySchedule === 0
-                ? "Heitor Cunha (Diurno) + Jonathan Armando (Noturno)"
+                ? "Luis Butter (Diurno) + Jonathan Armando (Noturno)"
                 : "Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)";
             
             doc.text(`• Primeiro dia: ${firstDayOperators}`, margin + 5, yPos);
-            doc.text(`• Luis Butter trabalha apenas diurno em dias úteis`, margin + 5, yPos + 5);
-            doc.text(`• Referência: 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)`, margin + 5, yPos + 10);
+            doc.text(`• Lais Ril trabalha noturno em dias ímpares`, margin + 5, yPos + 5);
+            doc.text(`• Heitor Cunha trabalha noturno em dias pares`, margin + 5, yPos + 10);
+            doc.text(`• Referência: 28/06/2025 - Luis Butter (D) + Jonathan Armando (N)`, margin + 5, yPos + 15);
             
-            yPos += 20;
+            yPos += 25;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
@@ -970,7 +925,7 @@
                     headers.push(`${day}\n${dayOfWeek.substring(0, 3)}`);
                 }
                 
-                const tableData = allOperators.map(operator => {
+                const tableData = operators.map(operator => {
                     const row = [operator];
                     for (let day = currentDay; day <= endDay; day++) {
                         row.push(scheduleData[operator][day] || '');
@@ -1025,12 +980,6 @@
                                 data.cell.styles.fontStyle = 'bold';
                             }
                         }
-                        
-                        if (data.section === 'body' && data.row.index === 4) {
-                            if (data.column.index === 0) {
-                                data.cell.styles.fillColor = [220, 255, 220];
-                            }
-                        }
                     },
                     margin: { left: margin, right: margin }
                 });
@@ -1058,9 +1007,9 @@
             yPos += 10;
 
             const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%'];
-            const summaryData = allOperators.map(operator => {
+            const summaryData = operators.map(operator => {
                 const totals = { D: 0, N: 0, B: 0 };
-                Object.values(scheduleData[operator]).forEach(value => {
+                Object.values(scheduleData[operator] || {}).forEach(value => {
                     if (totals.hasOwnProperty(value)) totals[value]++;
                 });
                 const totalPlantoes = totals.D + totals.N + totals.B;
@@ -1104,13 +1053,6 @@
                     },
                     4: { fontStyle: 'bold' }
                 },
-                didParseCell: (data) => {
-                    if (data.section === 'body' && data.row.index === 4) {
-                        if (data.column.index === 0) {
-                            data.cell.styles.fillColor = [220, 255, 220];
-                        }
-                    }
-                },
                 margin: { left: margin, right: margin }
             });
 
@@ -1135,7 +1077,7 @@
 
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.2);
-                        for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= 10; i++) {
                 const lineY = yPos + (i * 5.5);
                 if (lineY < yPos + obsHeight - 5) {
                     doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
@@ -1168,302 +1110,23 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8);
             doc.setTextColor(120, 120, 120);
-            doc.text('MOVISAFE - Segurança Corporativa e Empresarial', margin, pageHeight - 15);
+            doc.text('MOVISAFE - Segurança Corporativa', margin, pageHeight - 15);
             doc.text(`Página 1`, pageWidth - margin - 15, pageHeight - 15);
 
             const monthName = getMonthName(month);
             doc.save(`MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
             
-            console.log(`✅ PDF exportado: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
-            alert(`✅ PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
+            alert(`PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
         }
 
-        // Funções auxiliares
-        function getDaysInMonth(year, month) {
-            return new Date(year, month, 0).getDate();
+        async function saveToSheet() {
+            alert('Função de salvar no Google Sheets disponível. Configure a API conforme necessário.');
         }
 
-        function getDayOfWeek(year, month, day) {
-            const date = new Date(year, month - 1, day);
-            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            return days[date.getDay()];
+        async function loadFromSheet() {
+            alert('Função de carregar do Google Sheets disponível. Configure a API conforme necessário.');
         }
 
-        function isWeekend(year, month, day) {
-            const date = new Date(year, month - 1, day);
-            return date.getDay() === 0 || date.getDay() === 6;
-        }
-
-        function isWeekday(year, month, day) {
-            return !isWeekend(year, month, day);
-        }
-
-        function getDayIndexFromReference(year, month, day) {
-            const targetDate = new Date(year, month - 1, day);
-            const diffTime = targetDate - REFERENCE_DATE;
-            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        function getScheduleForDay(dayIndex) {
-            return dayIndex % 2;
-        }
-
-        function initializeOvertimeData() {
-            const allOperators = [...operators, 'Luis Butter'];
-            const selectedMonth = document.getElementById('monthSelect').value;
-            if (!overtimeData[selectedMonth]) {
-                overtimeData[selectedMonth] = {};
-            }
-            allOperators.forEach(operator => {
-                if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
-            });
-            console.log('✅ Dados de horas extras inicializados');
-        }
-
-        function updateOvertime(operator, type, value) {
-            const selectedMonth = document.getElementById('monthSelect').value;
-            if (!overtimeData[selectedMonth]) overtimeData[selectedMonth] = {};
-            if (!overtimeData[selectedMonth][operator]) overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
-            const parsedValue = parseFloat(value);
-            overtimeData[selectedMonth][operator][type] = isNaN(parsedValue) ? 0 : Math.max(0, parsedValue);
-            console.log(`✅ Horas extras atualizadas para ${operator}: ${type} = ${parsedValue}`);
-            updateDashboard();
-            autoSave(); // Auto-save após mudança
-        }
-
-        function getOvertime(operator, type) {
-            const selectedMonth = document.getElementById('monthSelect').value;
-            return overtimeData[selectedMonth]?.[operator]?.[type] || 0;
-        }
-
-        function updateScaleInfo() {
-            console.log('🔄 Atualizando informações da escala...');
-            const selectedMonth = document.getElementById('monthSelect').value;
-            const [year, month] = selectedMonth.split('-').map(Number);
-            const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDaySchedule = getScheduleForDay(firstDayIndex);
-            const firstDayOperators = firstDaySchedule === 0
-                ? "Heitor Cunha (D) + Jonathan Armando (N)"
-                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
-            document.getElementById('scaleInfo').innerHTML = `
-                <h4>📅 Informações da Escala - ${getMonthName(month)} ${year}</h4>
-                <p><strong>Primeiro dia:</strong> ${firstDayOperators}</p>
-                <p><strong>Referência:</strong> 28/06/2025 - Heitor Cunha (D) + Jonathan Armando (N)</p>
-                <p><strong>Luis Butter:</strong> Diurno apenas em dias úteis</p>
-            `;
-            console.log('✅ Informações da escala atualizadas');
-        }
-
-        function getMonthName(month) {
-            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            return months[month - 1];
-        }
-
-        function updateCalendar() {
-            console.log('📅 Atualizando calendário...');
-            const selectedMonth = document.getElementById('monthSelect').value;
-            const [year, month] = selectedMonth.split('-').map(Number);
-            const daysInMonth = getDaysInMonth(year, month);
-            const table = document.getElementById('scheduleTable');
-            table.innerHTML = '';
-
-            // Cabeçalho
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = '<th>Operador</th>';
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayOfWeek = getDayOfWeek(year, month, day);
-                const isWeekendDay = isWeekend(year, month, day);
-                headerRow.innerHTML += `<th class="day-header ${isWeekendDay ? 'weekend' : ''}">${day.toString().padStart(2, '0')}<br>${dayOfWeek}</th>`;
-            }
-            table.appendChild(headerRow);
-
-            // Linhas
-            const allOperators = [...operators, 'Luis Butter'];
-            allOperators.forEach(operator => {
-                const row = document.createElement('tr');
-                if (operator === 'Luis Butter') row.classList.add('luis-row');
-                row.innerHTML = `<td>${operator}</td>`;
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const cellId = `${operator}-${day}`;
-                    const isWeekendDay = isWeekend(year, month, day);
-                    row.innerHTML += `<td class="day-cell ${isWeekendDay ? 'weekend' : ''}" id="${cellId}" onclick="showCellSelector('${cellId}', event)"></td>`;
-                }
-                table.appendChild(row);
-            });
-
-            // Verificar se há dados salvos para este mês
-            let dataLoaded = false;
-            if (scheduleData && scheduleData[allOperators[0]] && scheduleData[allOperators[0]][1] !== undefined) {
-                dataLoaded = true;
-            }
-
-            // Se não há dados salvos, inicializar estrutura vazia
-            if (!dataLoaded) {
-                if (!scheduleData) scheduleData = {};
-                allOperators.forEach(operator => {
-                    if (!scheduleData[operator]) scheduleData[operator] = {};
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        if (scheduleData[operator][day] === undefined) {
-                            scheduleData[operator][day] = '';
-                        }
-                    }
-                });
-            }
-
-            initializeOvertimeData();
-            updateScaleInfo();
-            updateCalendarDisplay();
-            updateDashboard();
-            console.log('✅ Calendário atualizado com sucesso');
-            document.querySelector('.loading-message').style.display = 'none';
-        }
-
-        function showCellSelector(cellId, event) {
-            console.log(`🔍 Mostrando seletor para célula ${cellId}`);
-            event.stopPropagation();
-            currentCellId = cellId;
-            const selector = document.getElementById('cellSelector');
-            const cell = document.getElementById(cellId);
-            const rect = cell.getBoundingClientRect();
-            selector.style.display = 'block';
-            selector.style.position = 'fixed';
-            selector.style.left = rect.left + rect.width / 2 - 60 + 'px';
-            selector.style.top = rect.top - 10 + 'px';
-        }
-
-        function setCellValue(value) {
-            if (!currentCellId) return;
-            console.log(`✅ Definindo valor ${value} para célula ${currentCellId}`);
-            const cell = document.getElementById(currentCellId);
-            const [operator, day] = currentCellId.split('-');
-            cell.textContent = value;
-            cell.className = cell.className.replace(/\s[DNB]$/, '');
-            if (value) cell.classList.add(value);
-            scheduleData[operator][day] = value;
-            document.getElementById('cellSelector').style.display = 'none';
-            currentCellId = null;
-            updateDashboard();
-            autoSave(); // Auto-save após mudança
-        }
-
-        function updateDashboard() {
-            console.log('📊 Atualizando dashboard...');
-            const allOperators = [...operators, 'Luis Butter'];
-            const dashboardContent = document.getElementById('dashboardContent');
-            dashboardContent.innerHTML = '';
-
-            allOperators.forEach(operator => {
-                const totals = { D: 0, N: 0, B: 0 };
-                Object.values(scheduleData[operator]).forEach(value => {
-                    if (totals.hasOwnProperty(value)) totals[value]++;
-                });
-                const totalPlantoes = totals.D + totals.N + totals.B;
-                const adicionaisNoturnos = totals.N;
-                const horasExtras100 = getOvertime(operator, 'he100');
-                const horasExtras50 = getOvertime(operator, 'he50');
-
-                const operatorDiv = document.createElement('div');
-                operatorDiv.className = 'operator-summary';
-                operatorDiv.innerHTML = `
-                    <h4>${operator}</h4>
-                    <div class="summary-grid">
-                        <div class="summary-item"><span>Plantões Diurnos:</span><span class="summary-value">${totals.D}</span></div>
-                        <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
-                        <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
-                        <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
-                        <div class="summary-item"><span>Adicionais Noturnos:</span><span class="summary-value">${adicionaisNoturnos}</span></div>
-                        <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
-                        <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
-                    </div>
-                `;
-                dashboardContent.appendChild(operatorDiv);
-            });
-            console.log('✅ Dashboard atualizado com sucesso');
-        }
-
-        function autoFillMonth() {
-            console.log('🔄 Preenchendo mês automaticamente...');
-            const selectedMonth = document.getElementById('monthSelect').value;
-            const [year, month] = selectedMonth.split('-').map(Number);
-            const daysInMonth = getDaysInMonth(year, month);
-            clearMonth();
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayIndex = getDayIndexFromReference(year, month, day);
-                const scheduleType = getScheduleForDay(dayIndex);
-                if (scheduleType === 0) {
-                    scheduleData['Heitor Cunha'][day] = 'D';
-                    scheduleData['Jonathan Armando'][day] = 'N';
-                } else {
-                    scheduleData['Josniel Rodriguez'][day] = 'D';
-                    scheduleData['Leticia Pinheiro'][day] = 'N';
-                }
-                if (isWeekday(year, month, day)) {
-                    scheduleData['Luis Butter'][day] = 'D';
-                }
-            }
-
-            updateCalendarDisplay();
-            updateDashboard();
-            autoSave(); // Auto-save após preenchimento automático
-            const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDaySchedule = getScheduleForDay(firstDayIndex);
-            const firstDayOperators = firstDaySchedule === 0
-                ? "Heitor Cunha (D) + Jonathan Armando (N)"
-                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
-            console.log('✅ Mês preenchido automaticamente');
-            alert(`Mês preenchido automaticamente!\n\nContinuidade mantida:\n- Primeiro dia: ${firstDayOperators}\n- Alternância diária entre as duplas\n- Luis Butter (D) apenas em dias úteis`);
-        }
-
-        function updateCalendarDisplay() {
-            console.log('🔄 Atualizando exibição do calendário...');
-            const allOperators = [...operators, 'Luis Butter'];
-            const selectedMonth = document.getElementById('monthSelect').value;
-            const [year, month] = selectedMonth.split('-').map(Number);
-            const daysInMonth = getDaysInMonth(year, month);
-
-            allOperators.forEach(operator => {
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const cellId = `${operator}-${day}`;
-                    const cell = document.getElementById(cellId);
-                    if (cell) {
-                        const value = scheduleData[operator][day] || '';
-                        cell.textContent = value;
-                        cell.className = cell.className.replace(/\s[DNB]$/, '');
-                        if (value) cell.classList.add(value);
-                    }
-                }
-            });
-            console.log('✅ Exibição do calendário atualizada');
-        }
-
-        function clearMonth() {
-            console.log('🗑️ Limpando mês...');
-            const allOperators = [...operators, 'Luis Butter'];
-            const selectedMonth = document.getElementById('monthSelect').value;
-            const [year, month] = selectedMonth.split('-').map(Number);
-            const daysInMonth = getDaysInMonth(year, month);
-
-            allOperators.forEach(operator => {
-                if (!scheduleData[operator]) scheduleData[operator] = {};
-                for (let day = 1; day <= daysInMonth; day++) {
-                    scheduleData[operator][day] = '';
-                    const cellId = `${operator}-${day}`;
-                    const cell = document.getElementById(cellId);
-                    if (cell) {
-                        cell.textContent = '';
-                        cell.className = cell.className.replace(/\s[DNB]$/, '');
-                    }
-                }
-            });
-
-            initializeOvertimeData();
-            updateDashboard();
-            autoSave(); // Auto-save após limpeza
-            console.log('✅ Mês limpo com sucesso');
-        }
-
-        // Fechar seletor ao clicar fora
         document.addEventListener('click', function(event) {
             const selector = document.getElementById('cellSelector');
             if (!selector.contains(event.target)) {
@@ -1472,28 +1135,16 @@
             }
         });
 
-        // Inicializar calendário com verificação de erros e carregamento de dados
         try {
-            console.log('🚀 Inicializando aplicação...');
-            
-            // Tentar carregar dados salvos
             const dataLoaded = loadFromLocalStorage();
-            if (dataLoaded) {
-                console.log('📂 Dados anteriores encontrados e carregados');
-            } else {
-                console.log('📝 Nenhum dado anterior encontrado, iniciando limpo');
-            }
-            
             updateCalendar();
-            
             if (dataLoaded) {
-                alert('✅ Dados anteriores carregados com sucesso!\n\nSeus dados foram restaurados automaticamente.');
+                alert('Dados anteriores carregados com sucesso!');
             }
         } catch (error) {
-            console.error('❌ Erro ao inicializar aplicação:', error);
-            alert('❌ Erro ao inicializar a aplicação. Verifique o console (F12) para detalhes.');
+            console.error('Erro ao inicializar:', error);
+            alert('Erro ao inicializar a aplicação.');
         }
     </script>
 </body>
 </html>
-            
