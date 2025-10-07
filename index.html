@@ -161,6 +161,16 @@
             gap: 8px;
             font-size: 13px;
         }
+        
+        .summary-item ul {
+            list-style: none; /* Remove bullet points */
+            padding-left: 0; /* Remove default padding */
+            margin-bottom: 0; /* Remove default margin */
+        }
+
+        .summary-item ul li {
+            padding: 2px 0; /* Add some padding to list items */
+        }
 
         .summary-item {
             display: flex;
@@ -173,6 +183,11 @@
         .summary-value {
             font-weight: 600;
             color: #1e3c72;
+        }
+
+        .summary-value.money {
+            color: #28a745;
+            font-weight: 700;
         }
 
         .editable-item {
@@ -202,6 +217,36 @@
             box-shadow: 0 0 3px rgba(30, 60, 114, 0.3);
         }
 
+        .night-allowance-section {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .night-allowance-section h4 {
+            color: #155724;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+
+        .night-calculation {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .calculation-detail {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
         .month-selector {
             margin-bottom: 20px;
             display: flex;
@@ -225,6 +270,13 @@
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
+        }
+        
+        .scale-info ul {
+            text-align: left; /* Align list items to the left */
+            list-style: disc; /* Use disc for list items */
+            padding-left: 25px; /* Add some padding for the list */
+            margin-top: 10px;
         }
 
         .scale-info h4 {
@@ -498,20 +550,49 @@
     <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
 
     <script>
-        const GOOGLE_SHEETS_API_KEY = 'AIzaSyArIDx05b9gGgMsgJVGvkM1tR8VgMSsx9Y';
-        const SPREADSHEET_ID = '17LVqhNUNnHRAe2qnYomdFqeJUMPf0qFbKPEMWApkDdo';
+        const GOOGLE_SHEETS_API_KEY = 'AIzaSyArIDx05b9gGgMsgJVV1tR8VgMSsx9Y'; // Lembre-se da recomendação de segurança para esta chave.
+        const SPREADSHEET_ID = '17LVqhNUNnHRAe2qnYomFqeJUMP0qFbKPEMWApkDdo';
 
-        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Luis Butter', 'Heitor Cunha', 'Lais Ril', 'Jonathan Armando'];
+        // ATUALIZAÇÃO: Nova lista de operadores, incluindo Luis, Jonathan e Lais com seus novos papeis
+        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Bianca Santiago', 'Jessica Rodrigues', 'Heitor Cunha', 'Jonathan Armando', 'Lais Ril', 'Luis Butter'];
         let scheduleData = {};
         let overtimeData = {};
         let currentCellId = null;
 
-        const REFERENCE_DATE = new Date(2025, 5, 28);
+        // Configurações do adicional noturno
+        const NIGHT_ALLOWANCE_CONFIG = {
+            hourlyRate: 2.04, // R$ por hora
+            nightHours: 7, // 22h às 5h = 7 horas
+            reducedMinutes: 52.5, // 52 minutos e 30 segundos
+            ficticiousHours: function() {
+                // Cálculo das horas fictas: 7 horas × 60 ÷ 52,5 = 8 horas
+                return (this.nightHours * 60) / this.reducedMinutes;
+            }
+        };
+
+        // A data de referência permanece a mesma. 28/06/2025 é um sábado (dayOfWeek = 6).
+        // Isso resulta em dayIndex = 0 (se diffTime é 0), e scheduleType = 0.
+        // No dia 28/06/2025 (sábado), a equipe Bianca D + Jessica N estará de plantão.
+        const REFERENCE_DATE = new Date(2025, 5, 28); // Mês 5 é Junho (0-indexed)
 
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth() + 1;
         const currentYear = currentDate.getFullYear();
         document.getElementById('monthSelect').value = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+
+        function calculateNightAllowance(nightShifts) {
+            const ficticiousHours = NIGHT_ALLOWANCE_CONFIG.ficticiousHours();
+            const totalFicticiousHours = nightShifts * ficticiousHours;
+            const totalValue = totalFicticiousHours * NIGHT_ALLOWANCE_CONFIG.hourlyRate;
+            
+            return {
+                nightShifts: nightShifts,
+                hoursPerShift: ficticiousHours,
+                totalHours: totalFicticiousHours,
+                hourlyRate: NIGHT_ALLOWANCE_CONFIG.hourlyRate,
+                totalValue: totalValue
+            };
+        }
 
         function saveToLocalStorage() {
             try {
@@ -584,11 +665,14 @@
         function getDayIndexFromReference(year, month, day) {
             const targetDate = new Date(year, month - 1, day);
             const diffTime = targetDate - REFERENCE_DATE;
-            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            // dayIndex 0 for REFERENCE_DATE, 1 for next day, -1 for previous
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
         }
 
         function getScheduleForDay(dayIndex) {
-            return dayIndex % 2;
+            // Mantém a lógica de revezamento a cada 1 dia (0 ou 1)
+            // Usa Math.abs para garantir que o índice seja sempre positivo para o cálculo do módulo
+            return Math.abs(dayIndex) % 2; 
         }
 
         function initializeOvertimeData() {
@@ -626,19 +710,37 @@
             return months[month - 1];
         }
 
+        // ATUALIZAÇÃO: Informações da escala refletindo os novos operadores e esquemas
         function updateScaleInfo() {
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDaySchedule = getScheduleForDay(firstDayIndex);
-            const firstDayOperators = firstDaySchedule === 0
-                ? "Luis Butter (D) + Jonathan Armando (N)"
+            const firstDayMainRotation = getScheduleForDay(firstDayIndex); // 0 or 1
+            const firstDayMainTeam = firstDayMainRotation === 0
+                ? "Bianca Santiago (D) + Jessica Rodrigues (N)"
                 : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
+
+            // Para a data de referência (28/06/2025, dayIndex 0, scheduleType 0)
+            const referenceDateMainTeam = "Bianca Santiago (D) + Jessica Rodrigues (N)";
+
+            // Para a rotação da Helexia, precisamos do dia do mês para o revezamento.
+            // Para o dia 1 do mês selecionado, quem estaria na Helexia Noturno?
+            const firstDayHelexia = (1 % 2 === 1) ? "Lais Ril (N)" : "Jonathan Armando (N)"; // Usando day % 2 para o revezamento Helexia
+
             document.getElementById('scaleInfo').innerHTML = `
                 <h4>📅 Informações da Escala - ${getMonthName(month)} ${year}</h4>
-                <p><strong>Primeiro dia:</strong> ${firstDayOperators}</p>
-                <p><strong>Referência:</strong> 28/06/2025 - Luis Butter (D) + Jonathan Armando (N)</p>
-                <p><strong>Helexia:</strong> Lais Ril (N) em dias ímpares / Heitor Cunha (N) em dias pares</p>
+                <ul>
+                    <li><strong>Rotação Principal (diária):</strong> Alternância entre:</li>
+                    <ul>
+                        <li>Dupla 1: Bianca Santiago (Diurno) + Jessica Rodrigues (Noturno)</li>
+                        <li>Dupla 2: Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)</li>
+                    </ul>
+                    <li><strong>Referência (28/06/2025):</strong> Dupla Bianca D + Jessica N estará de plantão.</li>
+                    <li><strong>Helexia Noturno (em rotação diária):</strong> Alternância entre Jonathan Armando (N) e Lais Ril (N). Para o dia 1 deste mês: ${firstDayHelexia}.</li>
+                    <li><strong>Heitor Cunha:</strong> Diurno, de Segunda a Sexta.</li>
+                    <li><strong>Luis Butter:</strong> Backup (B), todos os dias.</li>
+                    <li><strong>Adicional Noturno:</strong> R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h) - Hora reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min</li>
+                </ul>
             `;
         }
 
@@ -669,22 +771,15 @@
                 table.appendChild(row);
             });
 
-            let dataLoaded = false;
-            if (scheduleData && scheduleData[operators[0]] && scheduleData[operators[0]][1] !== undefined) {
-                dataLoaded = true;
-            }
-
-            if (!dataLoaded) {
-                if (!scheduleData) scheduleData = {};
-                operators.forEach(operator => {
-                    if (!scheduleData[operator]) scheduleData[operator] = {};
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        if (scheduleData[operator][day] === undefined) {
-                            scheduleData[operator][day] = '';
-                        }
+            // Certifica-se que scheduleData tem as entradas para todos os operadores
+            operators.forEach(operator => {
+                if (!scheduleData[operator]) scheduleData[operator] = {};
+                for (let day = 1; day <= daysInMonth; day++) {
+                    if (scheduleData[operator][day] === undefined) {
+                        scheduleData[operator][day] = '';
                     }
-                });
-            }
+                }
+            });
 
             initializeOvertimeData();
             updateScaleInfo();
@@ -712,7 +807,11 @@
             cell.textContent = value;
             cell.className = cell.className.replace(/\s[DNB]$/, '');
             if (value) cell.classList.add(value);
+            
+            // Garante que o objeto para o operador e dia existe
+            if (!scheduleData[operator]) scheduleData[operator] = {};
             scheduleData[operator][day] = value;
+
             document.getElementById('cellSelector').style.display = 'none';
             currentCellId = null;
             updateDashboard();
@@ -725,13 +824,19 @@
 
             operators.forEach(operator => {
                 const totals = { D: 0, N: 0, B: 0 };
+                // Garante que scheduleData[operator] é um objeto antes de Object.values
                 Object.values(scheduleData[operator] || {}).forEach(value => {
                     if (totals.hasOwnProperty(value)) totals[value]++;
                 });
+                
                 const totalPlantoes = totals.D + totals.N + totals.B;
-                const adicionaisNoturnos = totals.N;
+                // No caso do adicional noturno, é o total de plantões noturnos
+                const adicionaisNoturnos = totals.N; 
                 const horasExtras100 = getOvertime(operator, 'he100');
                 const horasExtras50 = getOvertime(operator, 'he50');
+                
+                // Cálculo do adicional noturno
+                const nightAllowance = calculateNightAllowance(totals.N);
 
                 const operatorDiv = document.createElement('div');
                 operatorDiv.className = 'operator-summary';
@@ -742,49 +847,111 @@
                         <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
                         <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
                         <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
-                        <div class="summary-item"><span>Adicionais Noturnos:</span><span class="summary-value">${adicionaisNoturnos}</span></div>
                         <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
                         <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
                     </div>
                 `;
+
+                // Adicionar seção do adicional noturno se houver plantões noturnos
+                if (totals.N > 0) {
+                    const nightAllowanceDiv = document.createElement('div');
+                    nightAllowanceDiv.className = 'night-allowance-section';
+                    nightAllowanceDiv.innerHTML = `
+                        <h4>🌙 Adicional Noturno</h4>
+                        <div class="night-calculation">
+                            <div class="summary-item">
+                                <span>Plantões Noturnos:</span>
+                                <span class="summary-value">${nightAllowance.nightShifts}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Horas Fictas/Plantão:</span>
+                                <span class="summary-value">${nightAllowance.hoursPerShift.toFixed(2)}h</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Total Horas Fictas:</span>
+                                <span class="summary-value">${nightAllowance.totalHours.toFixed(2)}h</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Valor Total:</span>
+                                <span class="summary-value money">R$ ${nightAllowance.totalValue.toFixed(2)}</span>
+                            </div>
+                            <div class="calculation-detail">
+                                Cálculo: ${nightAllowance.nightShifts} plantões × ${nightAllowance.hoursPerShift.toFixed(2)}h × R$ ${nightAllowance.hourlyRate.toFixed(2)}
+                            </div>
+                            <div class="calculation-detail">
+                                Base legal: 7h reais (22h às 5h) = ${nightAllowance.hoursPerShift.toFixed(2)}h fictas (hora reduzida de ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min)
+                            </div>
+                        </div>
+                    `;
+                    operatorDiv.appendChild(nightAllowanceDiv);
+                }
+
                 dashboardContent.appendChild(operatorDiv);
             });
         }
 
+        // ATUALIZAÇÃO: Lógica de preenchimento automático para os novos operadores e esquemas
         function autoFillMonth() {
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
-            clearMonth();
+            clearMonth(); // Limpa os dados atuais antes de preencher
 
             for (let day = 1; day <= daysInMonth; day++) {
+                const currentDayDate = new Date(year, month - 1, day);
+                const dayOfWeek = currentDayDate.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+
+                // Rotação da equipe principal
                 const dayIndex = getDayIndexFromReference(year, month, day);
-                const scheduleType = getScheduleForDay(dayIndex);
-                
-                if (scheduleType === 0) {
-                    scheduleData['Luis Butter'][day] = 'D';
-                    scheduleData['Jonathan Armando'][day] = 'N';
+                const mainRotationType = getScheduleForDay(dayIndex); // 0 ou 1
+
+                if (mainRotationType === 0) {
+                    scheduleData['Bianca Santiago'][day] = 'D'; 
+                    scheduleData['Jessica Rodrigues'][day] = 'N'; 
+                    // Garante que a outra dupla não está no plantão principal
+                    scheduleData['Josniel Rodriguez'][day] = ''; 
+                    scheduleData['Leticia Pinheiro'][day] = ''; 
                 } else {
                     scheduleData['Josniel Rodriguez'][day] = 'D';
                     scheduleData['Leticia Pinheiro'][day] = 'N';
+                    // Garante que a outra dupla não está no plantão principal
+                    scheduleData['Bianca Santiago'][day] = ''; 
+                    scheduleData['Jessica Rodrigues'][day] = ''; 
                 }
-                
-                if (day % 2 === 1) {
+
+                // Helexia Noturno (Jonathan e Lais revezam)
+                if (day % 2 === 1) { // Dias ímpares
                     scheduleData['Lais Ril'][day] = 'N';
-                } else {
-                    scheduleData['Heitor Cunha'][day] = 'N';
+                    scheduleData['Jonathan Armando'][day] = ''; // Jonathan não está de plantão na Helexia neste dia
+                } else { // Dias pares
+                    scheduleData['Jonathan Armando'][day] = 'N';
+                    scheduleData['Lais Ril'][day] = ''; // Lais não está de plantão na Helexia neste dia
                 }
+
+                // Heitor Cunha: Diurno de Segunda a Sexta
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Segunda a Sexta
+                    scheduleData['Heitor Cunha'][day] = 'D';
+                } else {
+                    scheduleData['Heitor Cunha'][day] = ''; // Finais de semana, sem plantão
+                }
+
+                // Luis Butter: Backup (B) Diário
+                scheduleData['Luis Butter'][day] = 'B';
             }
 
             updateCalendarDisplay();
             updateDashboard();
             autoSave();
+
             const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDaySchedule = getScheduleForDay(firstDayIndex);
-            const firstDayOperators = firstDaySchedule === 0
-                ? "Luis Butter (D) + Jonathan Armando (N)"
+            const firstDayMainRotation = getScheduleForDay(firstDayIndex);
+            const firstDayMainTeam = firstDayMainRotation === 0
+                ? "Bianca Santiago (D) + Jessica Rodrigues (N)"
                 : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
-            alert(`Mês preenchido automaticamente!\n\nContinuidade mantida:\n- Primeiro dia: ${firstDayOperators}\n- Alternância diária entre as duplas\n- Helexia: Lais Ril (dias ímpares) / Heitor Cunha (dias pares)`);
+
+            const firstDayHelexia = (1 % 2 === 1) ? "Lais Ril (N)" : "Jonathan Armando (N)";
+
+            alert(`Mês preenchido automaticamente com as novas configurações!\n\nConfigurações:\n- Rotação Principal (primeiro dia do mês): ${firstDayMainTeam}\n- Helexia Noturno (primeiro dia do mês): ${firstDayHelexia}\n- Heitor Cunha: Diurno de Segunda a Sexta\n- Luis Butter: Backup (B) Diário`);
         }
 
         function updateCalendarDisplay() {
@@ -801,6 +968,10 @@
                         cell.textContent = value;
                         cell.className = cell.className.replace(/\s[DNB]$/, '');
                         if (value) cell.classList.add(value);
+                        // Garante que fins de semana não percam a formatação de "weekend" se tiver plantão
+                        if (isWeekend(year, month, day) && !cell.classList.contains('weekend')) {
+                            cell.classList.add('weekend');
+                        }
                     }
                 }
             });
@@ -819,7 +990,9 @@
                     const cell = document.getElementById(cellId);
                     if (cell) {
                         cell.textContent = '';
-                        cell.className = cell.className.replace(/\s[DNB]$/, '');
+                        // Remove classes de tipo de plantão, mas mantém weekend se for o caso
+                        const isWeekendDay = isWeekend(year, month, day);
+                        cell.className = `day-cell ${isWeekendDay ? 'weekend' : ''}`;
                     }
                 }
             });
@@ -829,6 +1002,7 @@
             autoSave();
         }
 
+        // ATUALIZAÇÃO: Exportação para PDF refletindo os novos operadores e esquemas
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             if (!jsPDF) {
@@ -889,17 +1063,22 @@
             yPos += 8;
             
             const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDaySchedule = getScheduleForDay(firstDayIndex);
-            const firstDayOperators = firstDaySchedule === 0
-                ? "Luis Butter (Diurno) + Jonathan Armando (Noturno)"
+            const firstDayMainRotation = getScheduleForDay(firstDayIndex);
+            const firstDayMainTeam = firstDayMainRotation === 0
+                ? "Bianca Santiago (Diurno) + Jessica Rodrigues (Noturno)"
                 : "Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)";
             
-            doc.text(`• Primeiro dia: ${firstDayOperators}`, margin + 5, yPos);
-            doc.text(`• Lais Ril trabalha noturno em dias ímpares`, margin + 5, yPos + 5);
-            doc.text(`• Heitor Cunha trabalha noturno em dias pares`, margin + 5, yPos + 10);
-            doc.text(`• Referência: 28/06/2025 - Luis Butter (D) + Jonathan Armando (N)`, margin + 5, yPos + 15);
+            const firstDayHelexia = (1 % 2 === 1) ? "Lais Ril (Noturno)" : "Jonathan Armando (Noturno)";
+
+            // Informações da escala no PDF
+            doc.text(`• Rotação Principal (primeiro dia do mês): ${firstDayMainTeam}`, margin + 5, yPos);
+            doc.text(`• Referência (28/06/2025): Bianca Santiago (Diurno) + Jessica Rodrigues (Noturno)`, margin + 5, yPos + 5);
+            doc.text(`• Helexia Noturno (rotação diária): ${firstDayHelexia} estará de plantão no dia 1 deste mês.`, margin + 5, yPos + 10);
+            doc.text(`• Heitor Cunha: Diurno, de Segunda a Sexta.`, margin + 5, yPos + 15);
+            doc.text(`• Luis Butter: Backup (B), todos os dias.`, margin + 5, yPos + 20);
+            doc.text(`• Adicional Noturno: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h)`, margin + 5, yPos + 25);
             
-            yPos += 25;
+            yPos += 35;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
@@ -994,7 +1173,7 @@
                 }
             }
 
-            if (yPos > 180) {
+            if (yPos > 150) {
                 doc.addPage();
                 addHeader();
                 yPos = 60;
@@ -1006,7 +1185,7 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%'];
+            const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%', 'Adic. Noturno'];
             const summaryData = operators.map(operator => {
                 const totals = { D: 0, N: 0, B: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => {
@@ -1015,6 +1194,7 @@
                 const totalPlantoes = totals.D + totals.N + totals.B;
                 const he100 = getOvertime(operator, 'he100');
                 const he50 = getOvertime(operator, 'he50');
+                const nightAllowance = calculateNightAllowance(totals.N);
                 
                 return [
                     operator,
@@ -1023,7 +1203,8 @@
                     totals.B.toString(),
                     totalPlantoes.toString(),
                     he100 + 'h',
-                    he50 + 'h'
+                    he50 + 'h',
+                    'R$ ' + nightAllowance.totalValue.toFixed(2)
                 ];
             });
 
@@ -1032,7 +1213,7 @@
                 body: summaryData,
                 startY: yPos,
                 styles: {
-                    fontSize: 9,
+                    fontSize: 8,
                     cellPadding: 3,
                     textColor: [50, 50, 50],
                     lineColor: [200, 200, 200],
@@ -1046,17 +1227,44 @@
                 },
                 columnStyles: {
                     0: { 
-                        cellWidth: 40, 
+                        cellWidth: 30, 
                         fontStyle: 'bold', 
                         halign: 'left',
                         fillColor: [245, 245, 245]
                     },
-                    4: { fontStyle: 'bold' }
+                    4: { fontStyle: 'bold' },
+                    7: { fontStyle: 'bold', textColor: [40, 167, 69] }
                 },
                 margin: { left: margin, right: margin }
             });
 
             yPos = doc.lastAutoTable.finalY + 20;
+
+            // Adicionar detalhamento do adicional noturno
+            if (yPos > 180) {
+                doc.addPage();
+                addHeader();
+                yPos = 60;
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Detalhamento do Adicional Noturno', margin, yPos);
+            yPos += 10;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(50, 50, 50);
+            
+            const ficticiousHours = NIGHT_ALLOWANCE_CONFIG.ficticiousHours();
+            doc.text(`• Horário noturno: 22h às 5h (${NIGHT_ALLOWANCE_CONFIG.nightHours} horas reais)`, margin + 5, yPos);
+            doc.text(`• Hora noturna reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes} minutos`, margin + 5, yPos + 5);
+            doc.text(`• Horas fictas por plantão: ${ficticiousHours.toFixed(2)} horas`, margin + 5, yPos + 10);
+            doc.text(`• Valor por hora: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}`, margin + 5, yPos + 15);
+            doc.text(`• Cálculo: ${NIGHT_ALLOWANCE_CONFIG.nightHours}h × 60min ÷ ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min = ${ficticiousHours.toFixed(2)}h fictas`, margin + 5, yPos + 20);
+            
+            yPos += 35;
 
             if (yPos > 200) {
                 doc.addPage();
@@ -1116,15 +1324,15 @@
             const monthName = getMonthName(month);
             doc.save(`MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
             
-            alert(`PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
+            alert(`PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf\n\nIncluindo cálculos de adicional noturno conforme legislação trabalhista.`);
         }
 
         async function saveToSheet() {
-            alert('Função de salvar no Google Sheets disponível. Configure a API conforme necessário.');
+            alert('Função de salvar no Google Sheets disponível. Recomenda-se configurar uma camada de backend para segurança da API Key.');
         }
 
         async function loadFromSheet() {
-            alert('Função de carregar do Google Sheets disponível. Configure a API conforme necessário.');
+            alert('Função de carregar do Google Sheets disponível. Recomenda-se configurar uma camada de backend para segurança da API Key.');
         }
 
         document.addEventListener('click', function(event) {
@@ -1139,7 +1347,7 @@
             const dataLoaded = loadFromLocalStorage();
             updateCalendar();
             if (dataLoaded) {
-                alert('Dados anteriores carregados com sucesso!');
+                alert('Dados anteriores carregados com sucesso! Devido às novas configurações de operadores e esquemas, é altamente recomendável LIMPAR DADOS SALVOS e usar PREENCHER MÊS AUTOMATICAMENTE para evitar inconsistências.');
             }
         } catch (error) {
             console.error('Erro ao inicializar:', error);
