@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOVISAFE - Frequência</title>
-    <script src="https://apis.google.com/js/api.js"></script>
+    <title>MOVISAFE - Frequência 2026</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -163,13 +162,13 @@
         }
         
         .summary-item ul {
-            list-style: none; /* Remove bullet points */
-            padding-left: 0; /* Remove default padding */
-            margin-bottom: 0; /* Remove default margin */
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0;
         }
 
         .summary-item ul li {
-            padding: 2px 0; /* Add some padding to list items */
+            padding: 2px 0;
         }
 
         .summary-item {
@@ -273,9 +272,9 @@
         }
         
         .scale-info ul {
-            text-align: left; /* Align list items to the left */
-            list-style: disc; /* Use disc for list items */
-            padding-left: 25px; /* Add some padding for the list */
+            text-align: left;
+            list-style: disc;
+            padding-left: 25px;
             margin-top: 10px;
         }
 
@@ -378,11 +377,13 @@
         .selector-option.D { color: #4CAF50; }
         .selector-option.N { color: #2196F3; }
         .selector-option.B { color: #FF9800; }
+        .selector-option.F { color: #9C27B0; }
         .selector-option.clear { color: #F44336; }
 
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
         .day-cell.N { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
         .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
+        .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -476,13 +477,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>MOVISAFE - Frequência</h1>
+            <h1>MOVISAFE - Frequência 2026</h1>
         </div>
 
         <div class="controls">
             <button class="btn btn-primary" onclick="autoFillMonth()">🔄 Preencher Mês Automaticamente</button>
-            <button class="btn btn-secondary" onclick="loadFromSheet()">📥 Carregar do Sheets</button>
-            <button class="btn btn-secondary" onclick="saveToSheet()">💾 Salvar Planilha</button>
             <button class="btn btn-secondary" onclick="exportToPDF()">📄 Exportar PDF</button>
             <button class="btn btn-secondary" onclick="clearMonth()">🗑️ Limpar Mês</button>
             <button class="btn btn-secondary" onclick="clearAllData()">🗑️ Limpar Dados Salvos</button>
@@ -494,18 +493,18 @@
                 <div class="month-selector">
                     <label for="monthSelect">Mês/Ano:</label>
                     <select id="monthSelect" onchange="updateCalendar()">
-                        <option value="2025-01">Janeiro 2025</option>
-                        <option value="2025-02">Fevereiro 2025</option>
-                        <option value="2025-03">Março 2025</option>
-                        <option value="2025-04">Abril 2025</option>
-                        <option value="2025-05">Maio 2025</option>
-                        <option value="2025-06">Junho 2025</option>
-                        <option value="2025-07">Julho 2025</option>
-                        <option value="2025-08">Agosto 2025</option>
-                        <option value="2025-09" selected>Setembro 2025</option>
-                        <option value="2025-10">Outubro 2025</option>
-                        <option value="2025-11">Novembro 2025</option>
-                        <option value="2025-12">Dezembro 2025</option>
+                        <option value="2026-01" selected>Janeiro 2026</option>
+                        <option value="2026-02">Fevereiro 2026</option>
+                        <option value="2026-03">Março 2026</option>
+                        <option value="2026-04">Abril 2026</option>
+                        <option value="2026-05">Maio 2026</option>
+                        <option value="2026-06">Junho 2026</option>
+                        <option value="2026-07">Julho 2026</option>
+                        <option value="2026-08">Agosto 2026</option>
+                        <option value="2026-09">Setembro 2026</option>
+                        <option value="2026-10">Outubro 2026</option>
+                        <option value="2026-11">Novembro 2026</option>
+                        <option value="2026-12">Dezembro 2026</option>
                     </select>
                 </div>
 
@@ -523,6 +522,10 @@
                     <div class="legend-item">
                         <div class="legend-color" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);"></div>
                         <span>B - Backup</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);"></div>
+                        <span>F - Férias</span>
                     </div>
                 </div>
 
@@ -544,41 +547,27 @@
         <div class="selector-option D" onclick="setCellValue('D')">D - Diurno</div>
         <div class="selector-option N" onclick="setCellValue('N')">N - Noturno</div>
         <div class="selector-option B" onclick="setCellValue('B')">B - Backup</div>
+        <div class="selector-option F" onclick="setCellValue('F')">F - Férias</div>
         <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
     </div>
 
     <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
 
     <script>
-        const GOOGLE_SHEETS_API_KEY = 'AIzaSyArIDx05b9gGgMsgJVV1tR8VgMSsx9Y'; // Lembre-se da recomendação de segurança para esta chave.
-        const SPREADSHEET_ID = '17LVqhNUNnHRAe2qnYomFqeJUMP0qFbKPEMWApkDdo';
-
-        // ATUALIZAÇÃO: Nova lista de operadores, incluindo Luis, Jonathan e Lais com seus novos papeis
-        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Bianca Santiago', 'Jessica Rodrigues', 'Heitor Cunha', 'Jonathan Armando', 'Lais Ril', 'Luis Butter'];
+        // LISTA ATUALIZADA DE OPERADORES - Carol Mury removida, André Luiz e Wellington Fraga adicionados
+        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Lais Ril', 'André Luiz', 'Luis Butter', 'Wellington Fraga'];
         let scheduleData = {};
         let overtimeData = {};
         let currentCellId = null;
 
-        // Configurações do adicional noturno
         const NIGHT_ALLOWANCE_CONFIG = {
-            hourlyRate: 2.04, // R$ por hora
-            nightHours: 7, // 22h às 5h = 7 horas
-            reducedMinutes: 52.5, // 52 minutos e 30 segundos
+            hourlyRate: 2.04,
+            nightHours: 7,
+            reducedMinutes: 52.5,
             ficticiousHours: function() {
-                // Cálculo das horas fictas: 7 horas × 60 ÷ 52,5 = 8 horas
                 return (this.nightHours * 60) / this.reducedMinutes;
             }
         };
-
-        // A data de referência permanece a mesma. 28/06/2025 é um sábado (dayOfWeek = 6).
-        // Isso resulta em dayIndex = 0 (se diffTime é 0), e scheduleType = 0.
-        // No dia 28/06/2025 (sábado), a equipe Bianca D + Jessica N estará de plantão.
-        const REFERENCE_DATE = new Date(2025, 5, 28); // Mês 5 é Junho (0-indexed)
-
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1;
-        const currentYear = currentDate.getFullYear();
-        document.getElementById('monthSelect').value = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
 
         function calculateNightAllowance(nightShifts) {
             const ficticiousHours = NIGHT_ALLOWANCE_CONFIG.ficticiousHours();
@@ -603,7 +592,7 @@
                     lastSelectedMonth: selectedMonth,
                     lastSaved: new Date().toISOString()
                 };
-                localStorage.setItem('movisafe_data', JSON.stringify(dataToSave));
+                localStorage.setItem('movisafe_data_2026', JSON.stringify(dataToSave));
             } catch (error) {
                 console.error('Erro ao salvar:', error);
             }
@@ -611,7 +600,7 @@
 
         function loadFromLocalStorage() {
             try {
-                const savedData = localStorage.getItem('movisafe_data');
+                const savedData = localStorage.getItem('movisafe_data_2026');
                 if (savedData) {
                     const data = JSON.parse(savedData);
                     scheduleData = data.scheduleData || {};
@@ -629,7 +618,7 @@
         }
 
         function clearLocalStorage() {
-            localStorage.removeItem('movisafe_data');
+            localStorage.removeItem('movisafe_data_2026');
         }
 
         function autoSave() {
@@ -660,19 +649,6 @@
         function isWeekend(year, month, day) {
             const date = new Date(year, month - 1, day);
             return date.getDay() === 0 || date.getDay() === 6;
-        }
-
-        function getDayIndexFromReference(year, month, day) {
-            const targetDate = new Date(year, month - 1, day);
-            const diffTime = targetDate - REFERENCE_DATE;
-            // dayIndex 0 for REFERENCE_DATE, 1 for next day, -1 for previous
-            return Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
-        }
-
-        function getScheduleForDay(dayIndex) {
-            // Mantém a lógica de revezamento a cada 1 dia (0 ou 1)
-            // Usa Math.abs para garantir que o índice seja sempre positivo para o cálculo do módulo
-            return Math.abs(dayIndex) % 2; 
         }
 
         function initializeOvertimeData() {
@@ -710,36 +686,27 @@
             return months[month - 1];
         }
 
-        // ATUALIZAÇÃO: Informações da escala refletindo os novos operadores e esquemas
         function updateScaleInfo() {
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
-            const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDayMainRotation = getScheduleForDay(firstDayIndex); // 0 or 1
-            const firstDayMainTeam = firstDayMainRotation === 0
-                ? "Bianca Santiago (D) + Jessica Rodrigues (N)"
-                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
-
-            // Para a data de referência (28/06/2025, dayIndex 0, scheduleType 0)
-            const referenceDateMainTeam = "Bianca Santiago (D) + Jessica Rodrigues (N)";
-
-            // Para a rotação da Helexia, precisamos do dia do mês para o revezamento.
-            // Para o dia 1 do mês selecionado, quem estaria na Helexia Noturno?
-            const firstDayHelexia = (1 % 2 === 1) ? "Lais Ril (N)" : "Jonathan Armando (N)"; // Usando day % 2 para o revezamento Helexia
 
             document.getElementById('scaleInfo').innerHTML = `
                 <h4>📅 Informações da Escala - ${getMonthName(month)} ${year}</h4>
                 <ul>
-                    <li><strong>Rotação Principal (diária):</strong> Alternância entre:</li>
+                    <li><strong>Diurno (revezamento diário):</strong></li>
                     <ul>
-                        <li>Dupla 1: Bianca Santiago (Diurno) + Jessica Rodrigues (Noturno)</li>
-                        <li>Dupla 2: Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)</li>
+                        <li>Dias Ímpares: Josniel Rodriguez</li>
+                        <li>Dias Pares: Leticia Pinheiro</li>
                     </ul>
-                    <li><strong>Referência (28/06/2025):</strong> Dupla Bianca D + Jessica N estará de plantão.</li>
-                    <li><strong>Helexia Noturno (em rotação diária):</strong> Alternância entre Jonathan Armando (N) e Lais Ril (N). Para o dia 1 deste mês: ${firstDayHelexia}.</li>
-                    <li><strong>Heitor Cunha:</strong> Diurno, de Segunda a Sexta.</li>
-                    <li><strong>Luis Butter:</strong> Backup (B), todos os dias.</li>
+                    <li><strong>Noturno (revezamento de duplas):</strong></li>
+                    <ul>
+                        <li>Plantão 1: Lais Ril + André Luiz</li>
+                        <li>Plantão 2: Luis Butter + Wellington Fraga</li>
+                        <li><em>(Duplas alternam dia sim, dia não)</em></li>
+                    </ul>
+                    <li><strong>Backup Diário:</strong> Heitor Cunha</li>
                     <li><strong>Adicional Noturno:</strong> R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h) - Hora reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min</li>
+                    <li><strong>Férias:</strong> Utilize a opção "F" para marcar dias de férias</li>
                 </ul>
             `;
         }
@@ -771,7 +738,6 @@
                 table.appendChild(row);
             });
 
-            // Certifica-se que scheduleData tem as entradas para todos os operadores
             operators.forEach(operator => {
                 if (!scheduleData[operator]) scheduleData[operator] = {};
                 for (let day = 1; day <= daysInMonth; day++) {
@@ -805,10 +771,9 @@
             const cell = document.getElementById(currentCellId);
             const [operator, day] = currentCellId.split('-');
             cell.textContent = value;
-            cell.className = cell.className.replace(/\s[DNB]$/, '');
+            cell.className = cell.className.replace(/\s[DNBF]$/, '');
             if (value) cell.classList.add(value);
             
-            // Garante que o objeto para o operador e dia existe
             if (!scheduleData[operator]) scheduleData[operator] = {};
             scheduleData[operator][day] = value;
 
@@ -823,19 +788,14 @@
             dashboardContent.innerHTML = '';
 
             operators.forEach(operator => {
-                const totals = { D: 0, N: 0, B: 0 };
-                // Garante que scheduleData[operator] é um objeto antes de Object.values
+                const totals = { D: 0, N: 0, B: 0, F: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => {
                     if (totals.hasOwnProperty(value)) totals[value]++;
                 });
                 
                 const totalPlantoes = totals.D + totals.N + totals.B;
-                // No caso do adicional noturno, é o total de plantões noturnos
-                const adicionaisNoturnos = totals.N; 
                 const horasExtras100 = getOvertime(operator, 'he100');
                 const horasExtras50 = getOvertime(operator, 'he50');
-                
-                // Cálculo do adicional noturno
                 const nightAllowance = calculateNightAllowance(totals.N);
 
                 const operatorDiv = document.createElement('div');
@@ -846,13 +806,13 @@
                         <div class="summary-item"><span>Plantões Diurnos:</span><span class="summary-value">${totals.D}</span></div>
                         <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
                         <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
+                        <div class="summary-item"><span>Férias:</span><span class="summary-value">${totals.F}</span></div>
                         <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
                         <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
                         <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
                     </div>
                 `;
 
-                // Adicionar seção do adicional noturno se houver plantões noturnos
                 if (totals.N > 0) {
                     const nightAllowanceDiv = document.createElement('div');
                     nightAllowanceDiv.className = 'night-allowance-section';
@@ -890,68 +850,47 @@
             });
         }
 
-        // ATUALIZAÇÃO: Lógica de preenchimento automático para os novos operadores e esquemas
         function autoFillMonth() {
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
-            clearMonth(); // Limpa os dados atuais antes de preencher
+            clearMonth();
 
             for (let day = 1; day <= daysInMonth; day++) {
-                const currentDayDate = new Date(year, month - 1, day);
-                const dayOfWeek = currentDayDate.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-
-                // Rotação da equipe principal
-                const dayIndex = getDayIndexFromReference(year, month, day);
-                const mainRotationType = getScheduleForDay(dayIndex); // 0 ou 1
-
-                if (mainRotationType === 0) {
-                    scheduleData['Bianca Santiago'][day] = 'D'; 
-                    scheduleData['Jessica Rodrigues'][day] = 'N'; 
-                    // Garante que a outra dupla não está no plantão principal
-                    scheduleData['Josniel Rodriguez'][day] = ''; 
-                    scheduleData['Leticia Pinheiro'][day] = ''; 
-                } else {
+                // DIURNO: Josniel (dias ímpares) e Letícia (dias pares) revezam
+                if (day % 2 === 1) {
                     scheduleData['Josniel Rodriguez'][day] = 'D';
-                    scheduleData['Leticia Pinheiro'][day] = 'N';
-                    // Garante que a outra dupla não está no plantão principal
-                    scheduleData['Bianca Santiago'][day] = ''; 
-                    scheduleData['Jessica Rodrigues'][day] = ''; 
-                }
-
-                // Helexia Noturno (Jonathan e Lais revezam)
-                if (day % 2 === 1) { // Dias ímpares
-                    scheduleData['Lais Ril'][day] = 'N';
-                    scheduleData['Jonathan Armando'][day] = ''; // Jonathan não está de plantão na Helexia neste dia
-                } else { // Dias pares
-                    scheduleData['Jonathan Armando'][day] = 'N';
-                    scheduleData['Lais Ril'][day] = ''; // Lais não está de plantão na Helexia neste dia
-                }
-
-                // Heitor Cunha: Diurno de Segunda a Sexta
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Segunda a Sexta
-                    scheduleData['Heitor Cunha'][day] = 'D';
+                    scheduleData['Leticia Pinheiro'][day] = '';
                 } else {
-                    scheduleData['Heitor Cunha'][day] = ''; // Finais de semana, sem plantão
+                    scheduleData['Leticia Pinheiro'][day] = 'D';
+                    scheduleData['Josniel Rodriguez'][day] = '';
                 }
 
-                // Luis Butter: Backup (B) Diário
-                scheduleData['Luis Butter'][day] = 'B';
+                // NOTURNO: Duplas revezam a cada plantão
+                // Dia 1, 3, 5, 7... (ímpares): Lais Ril + André Luiz
+                // Dia 2, 4, 6, 8... (pares): Luis Butter + Wellington Fraga
+                if (day % 2 === 1) {
+                    // Plantão 1: Lais + André
+                    scheduleData['Lais Ril'][day] = 'N';
+                    scheduleData['André Luiz'][day] = 'N';
+                    scheduleData['Luis Butter'][day] = '';
+                    scheduleData['Wellington Fraga'][day] = '';
+                } else {
+                    // Plantão 2: Luis + Wellington
+                    scheduleData['Luis Butter'][day] = 'N';
+                    scheduleData['Wellington Fraga'][day] = 'N';
+                    scheduleData['Lais Ril'][day] = '';
+                    scheduleData['André Luiz'][day] = '';
+                }
+
+                // BACKUP DIÁRIO: Heitor Cunha todos os dias
+                scheduleData['Heitor Cunha'][day] = 'B';
             }
 
             updateCalendarDisplay();
             updateDashboard();
             autoSave();
-
-            const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDayMainRotation = getScheduleForDay(firstDayIndex);
-            const firstDayMainTeam = firstDayMainRotation === 0
-                ? "Bianca Santiago (D) + Jessica Rodrigues (N)"
-                : "Josniel Rodriguez (D) + Leticia Pinheiro (N)";
-
-            const firstDayHelexia = (1 % 2 === 1) ? "Lais Ril (N)" : "Jonathan Armando (N)";
-
-            alert(`Mês preenchido automaticamente com as novas configurações!\n\nConfigurações:\n- Rotação Principal (primeiro dia do mês): ${firstDayMainTeam}\n- Helexia Noturno (primeiro dia do mês): ${firstDayHelexia}\n- Heitor Cunha: Diurno de Segunda a Sexta\n- Luis Butter: Backup (B) Diário`);
+            alert(`✅ Mês preenchido automaticamente!\n\nConfiguração 2026:\n• Diurno: Josniel (ímpares) e Letícia (pares)\n• Noturno: Duplas alternam dia sim, dia não\n  - Plantão 1: Lais + André\n  - Plantão 2: Luis + Wellington\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
@@ -966,9 +905,8 @@
                     if (cell) {
                         const value = scheduleData[operator][day] || '';
                         cell.textContent = value;
-                        cell.className = cell.className.replace(/\s[DNB]$/, '');
+                        cell.className = cell.className.replace(/\s[DNBF]$/, '');
                         if (value) cell.classList.add(value);
-                        // Garante que fins de semana não percam a formatação de "weekend" se tiver plantão
                         if (isWeekend(year, month, day) && !cell.classList.contains('weekend')) {
                             cell.classList.add('weekend');
                         }
@@ -990,7 +928,6 @@
                     const cell = document.getElementById(cellId);
                     if (cell) {
                         cell.textContent = '';
-                        // Remove classes de tipo de plantão, mas mantém weekend se for o caso
                         const isWeekendDay = isWeekend(year, month, day);
                         cell.className = `day-cell ${isWeekendDay ? 'weekend' : ''}`;
                     }
@@ -1002,19 +939,13 @@
             autoSave();
         }
 
-        // ATUALIZAÇÃO: Exportação para PDF refletindo os novos operadores e esquemas
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             if (!jsPDF) {
                 alert('Erro: jsPDF não carregado.');
                 return;
             }
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             if (!doc.autoTable) {
                 alert('Erro: Plugin autoTable não carregado.');
                 return;
@@ -1032,18 +963,14 @@
                 doc.setFontSize(18);
                 doc.setTextColor(30, 60, 114);
                 doc.text('MOVISAFE', margin, 25);
-                
                 doc.setFontSize(14);
                 doc.text('Relatório de Frequência', margin, 35);
-                
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(12);
                 doc.text(`${getMonthName(month)} de ${year}`, margin, 45);
-                
                 doc.setFontSize(10);
                 doc.setTextColor(100, 100, 100);
                 doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - margin - 50, 25);
-                
                 doc.setDrawColor(30, 60, 114);
                 doc.setLineWidth(0.5);
                 doc.line(margin, 50, pageWidth - margin, 50);
@@ -1056,40 +983,29 @@
             doc.setFontSize(11);
             doc.setTextColor(30, 60, 114);
             doc.text('Informações da Escala:', margin, yPos);
-            
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
             yPos += 8;
-            
-            const firstDayIndex = getDayIndexFromReference(year, month, 1);
-            const firstDayMainRotation = getScheduleForDay(firstDayIndex);
-            const firstDayMainTeam = firstDayMainRotation === 0
-                ? "Bianca Santiago (Diurno) + Jessica Rodrigues (Noturno)"
-                : "Josniel Rodriguez (Diurno) + Leticia Pinheiro (Noturno)";
-            
-            const firstDayHelexia = (1 % 2 === 1) ? "Lais Ril (Noturno)" : "Jonathan Armando (Noturno)";
 
-            // Informações da escala no PDF
-            doc.text(`• Rotação Principal (primeiro dia do mês): ${firstDayMainTeam}`, margin + 5, yPos);
-            doc.text(`• Referência (28/06/2025): Bianca Santiago (Diurno) + Jessica Rodrigues (Noturno)`, margin + 5, yPos + 5);
-            doc.text(`• Helexia Noturno (rotação diária): ${firstDayHelexia} estará de plantão no dia 1 deste mês.`, margin + 5, yPos + 10);
-            doc.text(`• Heitor Cunha: Diurno, de Segunda a Sexta.`, margin + 5, yPos + 15);
-            doc.text(`• Luis Butter: Backup (B), todos os dias.`, margin + 5, yPos + 20);
-            doc.text(`• Adicional Noturno: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h)`, margin + 5, yPos + 25);
-            
-            yPos += 35;
+            doc.text(`• Diurno (revezamento diário):`, margin + 5, yPos);
+            doc.text(`  - Dias ímpares: Josniel Rodriguez`, margin + 5, yPos + 5);
+            doc.text(`  - Dias pares: Leticia Pinheiro`, margin + 5, yPos + 10);
+            doc.text(`• Noturno (duplas alternam dia sim, dia não):`, margin + 5, yPos + 15);
+            doc.text(`  - Plantão 1: Lais Ril + André Luiz`, margin + 5, yPos + 20);
+            doc.text(`  - Plantão 2: Luis Butter + Wellington Fraga`, margin + 5, yPos + 25);
+            doc.text(`• Backup Diário: Heitor Cunha`, margin + 5, yPos + 30);
+            doc.text(`• Adicional Noturno: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h)`, margin + 5, yPos + 35);
+            yPos += 45;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
             doc.setTextColor(30, 60, 114);
             doc.text('Legenda:', margin, yPos);
-            
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
-            doc.text('D = Diurno    N = Noturno    B = Backup', margin + 25, yPos);
-            
+            doc.text('D = Diurno    N = Noturno    B = Backup    F = Férias', margin + 25, yPos);
             yPos += 15;
 
             const maxDaysPerTable = 16;
@@ -1097,7 +1013,6 @@
             
             while (currentDay <= daysInMonth) {
                 const endDay = Math.min(currentDay + maxDaysPerTable - 1, daysInMonth);
-                
                 const headers = ['Operador'];
                 for (let day = currentDay; day <= endDay; day++) {
                     const dayOfWeek = getDayOfWeek(year, month, day);
@@ -1116,48 +1031,20 @@
                     head: [headers],
                     body: tableData,
                     startY: yPos,
-                    styles: {
-                        fontSize: 8,
-                        cellPadding: 2,
-                        textColor: [50, 50, 50],
-                        lineColor: [200, 200, 200],
-                        lineWidth: 0.1,
-                        halign: 'center'
-                    },
-                    headStyles: {
-                        fillColor: [30, 60, 114],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold',
-                        fontSize: 7
-                    },
-                    columnStyles: {
-                        0: { 
-                            cellWidth: 35, 
-                            fontStyle: 'bold', 
-                            halign: 'left',
-                            fillColor: [245, 245, 245]
-                        }
-                    },
+                    styles: { fontSize: 8, cellPadding: 2, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
+                    headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
+                    columnStyles: { 0: { cellWidth: 35, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] } },
                     didParseCell: (data) => {
                         if (data.section === 'head' && data.column.index > 0) {
                             const day = currentDay + data.column.index - 1;
-                            if (isWeekend(year, month, day)) {
-                                data.cell.styles.fillColor = [200, 50, 50];
-                            }
+                            if (isWeekend(year, month, day)) data.cell.styles.fillColor = [200, 50, 50];
                         }
-                        
                         if (data.section === 'body' && data.column.index > 0) {
                             const value = data.cell.text[0];
-                            if (value === 'D') {
-                                data.cell.styles.fillColor = [200, 255, 200];
-                                data.cell.styles.fontStyle = 'bold';
-                            } else if (value === 'N') {
-                                data.cell.styles.fillColor = [200, 220, 255];
-                                data.cell.styles.fontStyle = 'bold';
-                            } else if (value === 'B') {
-                                data.cell.styles.fillColor = [255, 220, 150];
-                                data.cell.styles.fontStyle = 'bold';
-                            }
+                            if (value === 'D') { data.cell.styles.fillColor = [200, 255, 200]; data.cell.styles.fontStyle = 'bold'; }
+                            else if (value === 'N') { data.cell.styles.fillColor = [200, 220, 255]; data.cell.styles.fontStyle = 'bold'; }
+                            else if (value === 'B') { data.cell.styles.fillColor = [255, 220, 150]; data.cell.styles.fontStyle = 'bold'; }
+                            else if (value === 'F') { data.cell.styles.fillColor = [220, 180, 255]; data.cell.styles.fontStyle = 'bold'; }
                         }
                     },
                     margin: { left: margin, right: margin }
@@ -1165,19 +1052,10 @@
 
                 yPos = doc.lastAutoTable.finalY + 15;
                 currentDay = endDay + 1;
-                
-                if (currentDay <= daysInMonth && yPos > 200) {
-                    doc.addPage();
-                    addHeader();
-                    yPos = 60;
-                }
+                if (currentDay <= daysInMonth && yPos > 200) { doc.addPage(); addHeader(); yPos = 60; }
             }
 
-            if (yPos > 150) {
-                doc.addPage();
-                addHeader();
-                yPos = 60;
-            }
+            if (yPos > 150) { doc.addPage(); addHeader(); yPos = 60; }
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
@@ -1185,67 +1063,29 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Total', 'H.E. 100%', 'H.E. 50%', 'Adic. Noturno'];
+            const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Férias', 'Total', 'H.E. 100%', 'H.E. 50%', 'Adic. Noturno'];
             const summaryData = operators.map(operator => {
-                const totals = { D: 0, N: 0, B: 0 };
-                Object.values(scheduleData[operator] || {}).forEach(value => {
-                    if (totals.hasOwnProperty(value)) totals[value]++;
-                });
+                const totals = { D: 0, N: 0, B: 0, F: 0 };
+                Object.values(scheduleData[operator] || {}).forEach(value => { if (totals.hasOwnProperty(value)) totals[value]++; });
                 const totalPlantoes = totals.D + totals.N + totals.B;
                 const he100 = getOvertime(operator, 'he100');
                 const he50 = getOvertime(operator, 'he50');
                 const nightAllowance = calculateNightAllowance(totals.N);
-                
-                return [
-                    operator,
-                    totals.D.toString(),
-                    totals.N.toString(),
-                    totals.B.toString(),
-                    totalPlantoes.toString(),
-                    he100 + 'h',
-                    he50 + 'h',
-                    'R$ ' + nightAllowance.totalValue.toFixed(2)
-                ];
+                return [operator, totals.D.toString(), totals.N.toString(), totals.B.toString(), totals.F.toString(), totalPlantoes.toString(), he100 + 'h', he50 + 'h', 'R$ ' + nightAllowance.totalValue.toFixed(2)];
             });
 
             doc.autoTable({
                 head: [summaryHeaders],
                 body: summaryData,
                 startY: yPos,
-                styles: {
-                    fontSize: 8,
-                    cellPadding: 3,
-                    textColor: [50, 50, 50],
-                    lineColor: [200, 200, 200],
-                    lineWidth: 0.1,
-                    halign: 'center'
-                },
-                headStyles: {
-                    fillColor: [30, 60, 114],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold'
-                },
-                columnStyles: {
-                    0: { 
-                        cellWidth: 30, 
-                        fontStyle: 'bold', 
-                        halign: 'left',
-                        fillColor: [245, 245, 245]
-                    },
-                    4: { fontStyle: 'bold' },
-                    7: { fontStyle: 'bold', textColor: [40, 167, 69] }
-                },
+                styles: { fontSize: 8, cellPadding: 3, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
+                headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold' },
+                columnStyles: { 0: { cellWidth: 30, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 5: { fontStyle: 'bold' }, 8: { fontStyle: 'bold', textColor: [40, 167, 69] } },
                 margin: { left: margin, right: margin }
             });
 
             yPos = doc.lastAutoTable.finalY + 20;
-
-            // Adicionar detalhamento do adicional noturno
-            if (yPos > 180) {
-                doc.addPage();
-                addHeader();
-                yPos = 60;
-            }
+            if (yPos > 180) { doc.addPage(); addHeader(); yPos = 60; }
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
@@ -1256,21 +1096,15 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
-            
             const ficticiousHours = NIGHT_ALLOWANCE_CONFIG.ficticiousHours();
             doc.text(`• Horário noturno: 22h às 5h (${NIGHT_ALLOWANCE_CONFIG.nightHours} horas reais)`, margin + 5, yPos);
             doc.text(`• Hora noturna reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes} minutos`, margin + 5, yPos + 5);
             doc.text(`• Horas fictas por plantão: ${ficticiousHours.toFixed(2)} horas`, margin + 5, yPos + 10);
             doc.text(`• Valor por hora: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}`, margin + 5, yPos + 15);
             doc.text(`• Cálculo: ${NIGHT_ALLOWANCE_CONFIG.nightHours}h × 60min ÷ ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min = ${ficticiousHours.toFixed(2)}h fictas`, margin + 5, yPos + 20);
-            
             yPos += 35;
 
-            if (yPos > 200) {
-                doc.addPage();
-                addHeader();
-                yPos = 60;
-            }
+            if (yPos > 200) { doc.addPage(); addHeader(); yPos = 60; }
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
@@ -1282,14 +1116,11 @@
             doc.setDrawColor(150, 150, 150);
             doc.setLineWidth(0.5);
             doc.rect(margin, yPos, pageWidth - 2 * margin, obsHeight);
-
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.2);
             for (let i = 1; i <= 10; i++) {
                 const lineY = yPos + (i * 5.5);
-                if (lineY < yPos + obsHeight - 5) {
-                    doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
-                }
+                if (lineY < yPos + obsHeight - 5) doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
             }
 
             yPos += obsHeight + 20;
@@ -1303,14 +1134,12 @@
             const signatureWidth = 60;
             doc.setDrawColor(100, 100, 100);
             doc.setLineWidth(0.5);
-            
             doc.line(margin, yPos, margin + signatureWidth, yPos);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(80, 80, 80);
             doc.text('Responsável pela Escala', margin, yPos + 5);
             doc.text('Data: ___/___/______', margin, yPos + 10);
-
             doc.line(pageWidth - margin - signatureWidth, yPos, pageWidth - margin, yPos);
             doc.text('Supervisor/Gerente', pageWidth - margin - signatureWidth, yPos + 5);
             doc.text('Data: ___/___/______', pageWidth - margin - signatureWidth, yPos + 10);
@@ -1323,16 +1152,7 @@
 
             const monthName = getMonthName(month);
             doc.save(`MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
-            
-            alert(`PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf\n\nIncluindo cálculos de adicional noturno conforme legislação trabalhista.`);
-        }
-
-        async function saveToSheet() {
-            alert('Função de salvar no Google Sheets disponível. Recomenda-se configurar uma camada de backend para segurança da API Key.');
-        }
-
-        async function loadFromSheet() {
-            alert('Função de carregar do Google Sheets disponível. Recomenda-se configurar uma camada de backend para segurança da API Key.');
+            alert(`✅ PDF exportado com sucesso!\nArquivo: MOVISAFE_Frequencia_${monthName}_${year}.pdf`);
         }
 
         document.addEventListener('click', function(event) {
@@ -1347,7 +1167,7 @@
             const dataLoaded = loadFromLocalStorage();
             updateCalendar();
             if (dataLoaded) {
-                alert('Dados anteriores carregados com sucesso! Devido às novas configurações de operadores e esquemas, é altamente recomendável LIMPAR DADOS SALVOS e usar PREENCHER MÊS AUTOMATICAMENTE para evitar inconsistências.');
+                alert('⚠️ Atenção: A equipe foi atualizada! Carol Mury foi removida e André Luiz e Wellington Fraga foram adicionados.\n\nRecomenda-se limpar os dados antigos e preencher novamente.');
             }
         } catch (error) {
             console.error('Erro ao inicializar:', error);
