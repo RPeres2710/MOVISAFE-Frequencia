@@ -378,12 +378,16 @@
         .selector-option.N { color: #2196F3; }
         .selector-option.B { color: #FF9800; }
         .selector-option.F { color: #9C27B0; }
+        .selector-option.M { color: #E91E63; }
+        .selector-option.FE { color: #00BCD4; }
         .selector-option.clear { color: #F44336; }
 
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
         .day-cell.N { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
         .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
         .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
+        .day-cell.M { background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%); color: white; }
+        .day-cell.FE { background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -527,6 +531,14 @@
                         <div class="legend-color" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);"></div>
                         <span>F - Férias</span>
                     </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);"></div>
+                        <span>M - Médico</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);"></div>
+                        <span>FE - Feriado</span>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -548,6 +560,8 @@
         <div class="selector-option N" onclick="setCellValue('N')">N - Noturno</div>
         <div class="selector-option B" onclick="setCellValue('B')">B - Backup</div>
         <div class="selector-option F" onclick="setCellValue('F')">F - Férias</div>
+        <div class="selector-option M" onclick="setCellValue('M')">M - Médico</div>
+        <div class="selector-option FE" onclick="setCellValue('FE')">FE - Feriado</div>
         <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
     </div>
 
@@ -556,6 +570,18 @@
     <script>
         // LISTA ATUALIZADA DE OPERADORES - Carol Mury removida, André Luiz e Wellington Fraga adicionados
         const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Lais Ril', 'André Luiz', 'Luis Butter', 'Wellington Fraga'];
+        
+        // CONFIGURAÇÃO DE SALÁRIOS
+        const SALARIES = {
+            'Josniel Rodriguez': 1836.50,
+            'Leticia Pinheiro': 1836.50,
+            'Heitor Cunha': 2096.00,
+            'Lais Ril': 1836.50,
+            'André Luiz': 1836.50,
+            'Luis Butter': 2453.89,
+            'Wellington Fraga': 1836.50
+        };
+        
         let scheduleData = {};
         let overtimeData = {};
         let currentCellId = null;
@@ -580,6 +606,31 @@
                 totalHours: totalFicticiousHours,
                 hourlyRate: NIGHT_ALLOWANCE_CONFIG.hourlyRate,
                 totalValue: totalValue
+            };
+        }
+
+        function calculateOvertimeValue(operator, totalShifts, he50Hours, he100Hours) {
+            const baseSalary = SALARIES[operator] || 1836.50;
+            const hoursPerShift = 12; // 12 horas por plantão
+            const totalWorkedHours = totalShifts * hoursPerShift;
+            
+            // Valor da hora normal
+            const hourlyRate = baseSalary / totalWorkedHours;
+            
+            // Cálculo das horas extras
+            const he50Value = he50Hours * hourlyRate * 1.5;
+            const he100Value = he100Hours * hourlyRate * 2.0;
+            const totalOvertimeValue = he50Value + he100Value;
+            
+            return {
+                baseSalary: baseSalary,
+                totalWorkedHours: totalWorkedHours,
+                hourlyRate: hourlyRate,
+                he50Hours: he50Hours,
+                he50Value: he50Value,
+                he100Hours: he100Hours,
+                he100Value: he100Value,
+                totalOvertimeValue: totalOvertimeValue
             };
         }
 
@@ -771,7 +822,8 @@
             const cell = document.getElementById(currentCellId);
             const [operator, day] = currentCellId.split('-');
             cell.textContent = value;
-            cell.className = cell.className.replace(/\s[DNBF]$/, '');
+            // Remove todas as classes possíveis antes de adicionar a nova
+            cell.className = cell.className.replace(/\s(D|N|B|F|M|FE)\b/g, '');
             if (value) cell.classList.add(value);
             
             if (!scheduleData[operator]) scheduleData[operator] = {};
@@ -788,7 +840,7 @@
             dashboardContent.innerHTML = '';
 
             operators.forEach(operator => {
-                const totals = { D: 0, N: 0, B: 0, F: 0 };
+                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => {
                     if (totals.hasOwnProperty(value)) totals[value]++;
                 });
@@ -797,6 +849,10 @@
                 const horasExtras100 = getOvertime(operator, 'he100');
                 const horasExtras50 = getOvertime(operator, 'he50');
                 const nightAllowance = calculateNightAllowance(totals.N);
+                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, horasExtras50, horasExtras100);
+                
+                // Calcular total mensal
+                const totalMensal = overtimeCalc.baseSalary + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue;
 
                 const operatorDiv = document.createElement('div');
                 operatorDiv.className = 'operator-summary';
@@ -807,12 +863,60 @@
                         <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
                         <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
                         <div class="summary-item"><span>Férias:</span><span class="summary-value">${totals.F}</span></div>
+                        <div class="summary-item"><span>Médico:</span><span class="summary-value">${totals.M}</span></div>
+                        <div class="summary-item"><span>Feriado:</span><span class="summary-value">${totals.FE}</span></div>
                         <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
+                        <div class="summary-item"><span>Salário Base:</span><span class="summary-value money">R$ ${overtimeCalc.baseSalary.toFixed(2)}</span></div>
                         <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
                         <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
                     </div>
                 `;
 
+                // Adicionar seção de horas extras se houver
+                if (horasExtras50 > 0 || horasExtras100 > 0) {
+                    const overtimeDiv = document.createElement('div');
+                    overtimeDiv.className = 'night-allowance-section';
+                    overtimeDiv.style.background = 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)';
+                    overtimeDiv.style.borderColor = '#FF9800';
+                    overtimeDiv.innerHTML = `
+                        <h4>⏰ Horas Extras</h4>
+                        <div class="night-calculation">
+                            <div class="summary-item">
+                                <span>Horas Trabalhadas:</span>
+                                <span class="summary-value">${overtimeCalc.totalWorkedHours}h</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Valor/Hora:</span>
+                                <span class="summary-value">R$ ${overtimeCalc.hourlyRate.toFixed(2)}</span>
+                            </div>
+                            ${horasExtras50 > 0 ? `
+                            <div class="summary-item">
+                                <span>H.E. 50% (${horasExtras50}h):</span>
+                                <span class="summary-value money">R$ ${overtimeCalc.he50Value.toFixed(2)}</span>
+                            </div>
+                            <div class="calculation-detail">
+                                ${horasExtras50}h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 1,5
+                            </div>
+                            ` : ''}
+                            ${horasExtras100 > 0 ? `
+                            <div class="summary-item">
+                                <span>H.E. 100% (${horasExtras100}h):</span>
+                                <span class="summary-value money">R$ ${overtimeCalc.he100Value.toFixed(2)}</span>
+                            </div>
+                            <div class="calculation-detail">
+                                ${horasExtras100}h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 2,0
+                            </div>
+                            ` : ''}
+                            <div class="summary-item" style="margin-top: 10px; border-top: 2px solid #FF9800; padding-top: 10px;">
+                                <span><strong>Total H.E.:</strong></span>
+                                <span class="summary-value money"><strong>R$ ${overtimeCalc.totalOvertimeValue.toFixed(2)}</strong></span>
+                            </div>
+                        </div>
+                    `;
+                    operatorDiv.appendChild(overtimeDiv);
+                }
+
+                // Adicionar adicional noturno se houver
                 if (totals.N > 0) {
                     const nightAllowanceDiv = document.createElement('div');
                     nightAllowanceDiv.className = 'night-allowance-section';
@@ -846,6 +950,34 @@
                     operatorDiv.appendChild(nightAllowanceDiv);
                 }
 
+                // Adicionar TOTAL MENSAL
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'night-allowance-section';
+                totalDiv.style.background = 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)';
+                totalDiv.style.borderColor = '#4CAF50';
+                totalDiv.innerHTML = `
+                    <h4>💰 TOTAL MENSAL</h4>
+                    <div class="night-calculation">
+                        <div class="summary-item">
+                            <span>Salário Base:</span>
+                            <span class="summary-value money">R$ ${overtimeCalc.baseSalary.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Adicional Noturno:</span>
+                            <span class="summary-value money">R$ ${nightAllowance.totalValue.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Horas Extras:</span>
+                            <span class="summary-value money">R$ ${overtimeCalc.totalOvertimeValue.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item" style="margin-top: 10px; border-top: 3px solid #4CAF50; padding-top: 10px; font-size: 16px;">
+                            <span><strong>TOTAL A RECEBER:</strong></span>
+                            <span class="summary-value money"><strong>R$ ${totalMensal.toFixed(2)}</strong></span>
+                        </div>
+                    </div>
+                `;
+                operatorDiv.appendChild(totalDiv);
+
                 dashboardContent.appendChild(operatorDiv);
             });
         }
@@ -856,9 +988,25 @@
             const daysInMonth = getDaysInMonth(year, month);
             clearMonth();
 
+            // Determinar offset baseado no mês
+            // Janeiro começa normal (dia 1 = ímpar)
+            // Para os outros meses, verificar quantos dias teve o mês anterior
+            let startOffset = 0;
+            
+            if (month > 1) {
+                // Calcular quantos dias teve o mês anterior
+                const previousMonthDays = getDaysInMonth(year, month - 1);
+                // Se o mês anterior terminou em dia ímpar (ex: 31), o próximo começa em par
+                // Se terminou em par (ex: 30), o próximo começa em ímpar
+                startOffset = previousMonthDays % 2;
+            }
+
             for (let day = 1; day <= daysInMonth; day++) {
-                // DIURNO: Josniel (dias ímpares) e Letícia (dias pares) revezam
-                if (day % 2 === 1) {
+                // Calcular se é dia "ímpar" ou "par" na sequência contínua
+                const isOddDay = (day + startOffset) % 2 === 1;
+                
+                // DIURNO: Josniel (dias ímpares da sequência) e Letícia (dias pares)
+                if (isOddDay) {
                     scheduleData['Josniel Rodriguez'][day] = 'D';
                     scheduleData['Leticia Pinheiro'][day] = '';
                 } else {
@@ -866,17 +1014,15 @@
                     scheduleData['Josniel Rodriguez'][day] = '';
                 }
 
-                // NOTURNO: Duplas revezam a cada plantão
-                // Dia 1, 3, 5, 7... (ímpares): Lais Ril + André Luiz
-                // Dia 2, 4, 6, 8... (pares): Luis Butter + Wellington Fraga
-                if (day % 2 === 1) {
-                    // Plantão 1: Lais + André
+                // NOTURNO: Duplas alternam na sequência contínua
+                // Sequência ímpar: Lais + André
+                // Sequência par: Luis + Wellington
+                if (isOddDay) {
                     scheduleData['Lais Ril'][day] = 'N';
                     scheduleData['André Luiz'][day] = 'N';
                     scheduleData['Luis Butter'][day] = '';
                     scheduleData['Wellington Fraga'][day] = '';
                 } else {
-                    // Plantão 2: Luis + Wellington
                     scheduleData['Luis Butter'][day] = 'N';
                     scheduleData['Wellington Fraga'][day] = 'N';
                     scheduleData['Lais Ril'][day] = '';
@@ -890,7 +1036,10 @@
             updateCalendarDisplay();
             updateDashboard();
             autoSave();
-            alert(`✅ Mês preenchido automaticamente!\n\nConfiguração 2026:\n• Diurno: Josniel (ímpares) e Letícia (pares)\n• Noturno: Duplas alternam dia sim, dia não\n  - Plantão 1: Lais + André\n  - Plantão 2: Luis + Wellington\n• Backup Diário: Heitor Cunha`);
+            
+            const monthName = getMonthName(month);
+            const startType = startOffset === 0 ? 'ímpares (1, 3, 5...)' : 'pares (2, 4, 6...)';
+            alert(`✅ ${monthName} preenchido automaticamente!\n\nInício: Lais+André e Josniel começam em dias ${startType}\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Letícia\n• Noturno: Duplas alternam (Lais+André / Luis+Wellington)\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
@@ -905,7 +1054,8 @@
                     if (cell) {
                         const value = scheduleData[operator][day] || '';
                         cell.textContent = value;
-                        cell.className = cell.className.replace(/\s[DNBF]$/, '');
+                        // Remove todas as classes possíveis
+                        cell.className = cell.className.replace(/\s(D|N|B|F|M|FE)\b/g, '');
                         if (value) cell.classList.add(value);
                         if (isWeekend(year, month, day) && !cell.classList.contains('weekend')) {
                             cell.classList.add('weekend');
@@ -1005,7 +1155,7 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
-            doc.text('D = Diurno    N = Noturno    B = Backup    F = Férias', margin + 25, yPos);
+            doc.text('D = Diurno    N = Noturno    B = Backup    F = Férias    M = Médico    FE = Feriado', margin + 25, yPos);
             yPos += 15;
 
             const maxDaysPerTable = 16;
@@ -1045,6 +1195,8 @@
                             else if (value === 'N') { data.cell.styles.fillColor = [200, 220, 255]; data.cell.styles.fontStyle = 'bold'; }
                             else if (value === 'B') { data.cell.styles.fillColor = [255, 220, 150]; data.cell.styles.fontStyle = 'bold'; }
                             else if (value === 'F') { data.cell.styles.fillColor = [220, 180, 255]; data.cell.styles.fontStyle = 'bold'; }
+                            else if (value === 'M') { data.cell.styles.fillColor = [255, 182, 193]; data.cell.styles.fontStyle = 'bold'; }
+                            else if (value === 'FE') { data.cell.styles.fillColor = [173, 216, 230]; data.cell.styles.fontStyle = 'bold'; }
                         }
                     },
                     margin: { left: margin, right: margin }
@@ -1063,29 +1215,78 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'Diurno', 'Noturno', 'Backup', 'Férias', 'Total', 'H.E. 100%', 'H.E. 50%', 'Adic. Noturno'];
+            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'F', 'M', 'FE', 'Total', 'H.E. 50%', 'H.E. 100%', 'Vlr H.E.', 'Adic. Not.', 'TOTAL MENSAL'];
             const summaryData = operators.map(operator => {
-                const totals = { D: 0, N: 0, B: 0, F: 0 };
+                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => { if (totals.hasOwnProperty(value)) totals[value]++; });
                 const totalPlantoes = totals.D + totals.N + totals.B;
                 const he100 = getOvertime(operator, 'he100');
                 const he50 = getOvertime(operator, 'he50');
                 const nightAllowance = calculateNightAllowance(totals.N);
-                return [operator, totals.D.toString(), totals.N.toString(), totals.B.toString(), totals.F.toString(), totalPlantoes.toString(), he100 + 'h', he50 + 'h', 'R$ ' + nightAllowance.totalValue.toFixed(2)];
+                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, he50, he100);
+                const totalMensal = overtimeCalc.baseSalary + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue;
+                return [
+                    operator, 
+                    totals.D.toString(), 
+                    totals.N.toString(), 
+                    totals.B.toString(), 
+                    totals.F.toString(),
+                    totals.M.toString(),
+                    totals.FE.toString(),
+                    totalPlantoes.toString(), 
+                    he50 + 'h', 
+                    he100 + 'h',
+                    'R$ ' + overtimeCalc.totalOvertimeValue.toFixed(2),
+                    'R$ ' + nightAllowance.totalValue.toFixed(2),
+                    'R$ ' + totalMensal.toFixed(2)
+                ];
             });
 
             doc.autoTable({
                 head: [summaryHeaders],
                 body: summaryData,
                 startY: yPos,
-                styles: { fontSize: 8, cellPadding: 3, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
-                headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold' },
-                columnStyles: { 0: { cellWidth: 30, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 5: { fontStyle: 'bold' }, 8: { fontStyle: 'bold', textColor: [40, 167, 69] } },
+                styles: { fontSize: 6, cellPadding: 2, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
+                headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 5.5 },
+                columnStyles: { 
+                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 
+                    7: { fontStyle: 'bold' }, 
+                    10: { fontStyle: 'bold', textColor: [255, 140, 0] },
+                    11: { fontStyle: 'bold', textColor: [40, 167, 69] },
+                    12: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 7 }
+                },
                 margin: { left: margin, right: margin }
             });
 
             yPos = doc.lastAutoTable.finalY + 20;
             if (yPos > 180) { doc.addPage(); addHeader(); yPos = 60; }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(30, 60, 114);
+            doc.text('Detalhamento de Horas Extras', margin, yPos);
+            yPos += 10;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(50, 50, 50);
+            doc.text(`• Cálculo baseado em plantões de 12 horas`, margin + 5, yPos);
+            doc.text(`• Hora Extra 50%: (Salário Base ÷ Horas Trabalhadas) × 1,5`, margin + 5, yPos + 5);
+            doc.text(`• Hora Extra 100%: (Salário Base ÷ Horas Trabalhadas) × 2,0`, margin + 5, yPos + 10);
+            yPos += 20;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text('Salários Base:', margin + 5, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            yPos += 5;
+            
+            Object.keys(SALARIES).forEach(op => {
+                doc.text(`${op}: R$ ${SALARIES[op].toFixed(2)}`, margin + 10, yPos);
+                yPos += 4;
+            });
+            yPos += 10;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
