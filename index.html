@@ -582,9 +582,22 @@
             'Wellington Fraga': 1836.50
         };
         
-        let scheduleData = {};
+        // Estrutura: scheduleData[month][operator][day]
+        let allScheduleData = {};
         let overtimeData = {};
         let currentCellId = null;
+        
+        // Função auxiliar para obter dados do mês atual
+        function getCurrentMonthData() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (!allScheduleData[selectedMonth]) {
+                allScheduleData[selectedMonth] = {};
+                operators.forEach(op => {
+                    allScheduleData[selectedMonth][op] = {};
+                });
+            }
+            return allScheduleData[selectedMonth];
+        }
 
         const NIGHT_ALLOWANCE_CONFIG = {
             hourlyRate: 2.04,
@@ -637,12 +650,14 @@
         function saveToLocalStorage() {
             try {
                 const selectedMonth = document.getElementById('monthSelect').value;
+                
                 const dataToSave = {
-                    scheduleData: scheduleData,
+                    allScheduleData: allScheduleData,
                     overtimeData: overtimeData,
                     lastSelectedMonth: selectedMonth,
                     lastSaved: new Date().toISOString()
                 };
+                
                 localStorage.setItem('movisafe_data_2026', JSON.stringify(dataToSave));
             } catch (error) {
                 console.error('Erro ao salvar:', error);
@@ -654,11 +669,13 @@
                 const savedData = localStorage.getItem('movisafe_data_2026');
                 if (savedData) {
                     const data = JSON.parse(savedData);
-                    scheduleData = data.scheduleData || {};
+                    allScheduleData = data.allScheduleData || {};
                     overtimeData = data.overtimeData || {};
+                    
                     if (data.lastSelectedMonth) {
                         document.getElementById('monthSelect').value = data.lastSelectedMonth;
                     }
+                    
                     return true;
                 }
                 return false;
@@ -789,6 +806,8 @@
                 table.appendChild(row);
             });
 
+            // Inicializar estrutura de dados para o mês atual
+            const scheduleData = getCurrentMonthData();
             operators.forEach(operator => {
                 if (!scheduleData[operator]) scheduleData[operator] = {};
                 for (let day = 1; day <= daysInMonth; day++) {
@@ -826,6 +845,7 @@
             cell.className = cell.className.replace(/\s(D|N|B|F|M|FE)\b/g, '');
             if (value) cell.classList.add(value);
             
+            const scheduleData = getCurrentMonthData();
             if (!scheduleData[operator]) scheduleData[operator] = {};
             scheduleData[operator][day] = value;
 
@@ -838,6 +858,8 @@
         function updateDashboard() {
             const dashboardContent = document.getElementById('dashboardContent');
             dashboardContent.innerHTML = '';
+            
+            const scheduleData = getCurrentMonthData();
 
             operators.forEach(operator => {
                 const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0 };
@@ -986,7 +1008,10 @@
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
-            clearMonth();
+            
+            const scheduleData = getCurrentMonthData();
+            
+            // NÃO limpar o mês - apenas preencher células vazias
 
             // Determinar offset baseado no mês
             // Janeiro começa normal (dia 1 = ímpar)
@@ -1005,32 +1030,38 @@
                 // Calcular se é dia "ímpar" ou "par" na sequência contínua
                 const isOddDay = (day + startOffset) % 2 === 1;
                 
+                // Inicializar se não existir
+                operators.forEach(op => {
+                    if (!scheduleData[op]) scheduleData[op] = {};
+                });
+                
                 // DIURNO: Josniel (dias ímpares da sequência) e Letícia (dias pares)
+                // Só preencher se a célula estiver vazia
                 if (isOddDay) {
-                    scheduleData['Josniel Rodriguez'][day] = 'D';
-                    scheduleData['Leticia Pinheiro'][day] = '';
+                    if (!scheduleData['Josniel Rodriguez'][day]) scheduleData['Josniel Rodriguez'][day] = 'D';
+                    if (!scheduleData['Leticia Pinheiro'][day]) scheduleData['Leticia Pinheiro'][day] = '';
                 } else {
-                    scheduleData['Leticia Pinheiro'][day] = 'D';
-                    scheduleData['Josniel Rodriguez'][day] = '';
+                    if (!scheduleData['Leticia Pinheiro'][day]) scheduleData['Leticia Pinheiro'][day] = 'D';
+                    if (!scheduleData['Josniel Rodriguez'][day]) scheduleData['Josniel Rodriguez'][day] = '';
                 }
 
                 // NOTURNO: Duplas alternam na sequência contínua
-                // Sequência ímpar: Lais + André
-                // Sequência par: Luis + Wellington
+                // Só preencher se as células estiverem vazias
                 if (isOddDay) {
-                    scheduleData['Lais Ril'][day] = 'N';
-                    scheduleData['André Luiz'][day] = 'N';
-                    scheduleData['Luis Butter'][day] = '';
-                    scheduleData['Wellington Fraga'][day] = '';
+                    if (!scheduleData['Lais Ril'][day]) scheduleData['Lais Ril'][day] = 'N';
+                    if (!scheduleData['André Luiz'][day]) scheduleData['André Luiz'][day] = 'N';
+                    if (!scheduleData['Luis Butter'][day]) scheduleData['Luis Butter'][day] = '';
+                    if (!scheduleData['Wellington Fraga'][day]) scheduleData['Wellington Fraga'][day] = '';
                 } else {
-                    scheduleData['Luis Butter'][day] = 'N';
-                    scheduleData['Wellington Fraga'][day] = 'N';
-                    scheduleData['Lais Ril'][day] = '';
-                    scheduleData['André Luiz'][day] = '';
+                    if (!scheduleData['Luis Butter'][day]) scheduleData['Luis Butter'][day] = 'N';
+                    if (!scheduleData['Wellington Fraga'][day]) scheduleData['Wellington Fraga'][day] = 'N';
+                    if (!scheduleData['Lais Ril'][day]) scheduleData['Lais Ril'][day] = '';
+                    if (!scheduleData['André Luiz'][day]) scheduleData['André Luiz'][day] = '';
                 }
 
                 // BACKUP DIÁRIO: Heitor Cunha todos os dias
-                scheduleData['Heitor Cunha'][day] = 'B';
+                // Só preencher se a célula estiver vazia
+                if (!scheduleData['Heitor Cunha'][day]) scheduleData['Heitor Cunha'][day] = 'B';
             }
 
             updateCalendarDisplay();
@@ -1039,20 +1070,22 @@
             
             const monthName = getMonthName(month);
             const startType = startOffset === 0 ? 'ímpares (1, 3, 5...)' : 'pares (2, 4, 6...)';
-            alert(`✅ ${monthName} preenchido automaticamente!\n\nInício: Lais+André e Josniel começam em dias ${startType}\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Letícia\n• Noturno: Duplas alternam (Lais+André / Luis+Wellington)\n• Backup Diário: Heitor Cunha`);
+            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Células já preenchidas foram preservadas.\n\nInício: Lais+André e Josniel começam em dias ${startType}\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Letícia\n• Noturno: Duplas alternam (Lais+André / Luis+Wellington)\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
+            
+            const scheduleData = getCurrentMonthData();
 
             operators.forEach(operator => {
                 for (let day = 1; day <= daysInMonth; day++) {
                     const cellId = `${operator}-${day}`;
                     const cell = document.getElementById(cellId);
                     if (cell) {
-                        const value = scheduleData[operator][day] || '';
+                        const value = scheduleData[operator]?.[day] || '';
                         cell.textContent = value;
                         // Remove todas as classes possíveis
                         cell.className = cell.className.replace(/\s(D|N|B|F|M|FE)\b/g, '');
@@ -1069,6 +1102,8 @@
             const selectedMonth = document.getElementById('monthSelect').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
+            
+            const scheduleData = getCurrentMonthData();
 
             operators.forEach(operator => {
                 if (!scheduleData[operator]) scheduleData[operator] = {};
@@ -1107,6 +1142,8 @@
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
             const margin = 20;
+            
+            const scheduleData = getCurrentMonthData();
 
             const addHeader = () => {
                 doc.setFont('helvetica', 'bold');
@@ -1215,7 +1252,7 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'F', 'M', 'FE', 'Total', 'H.E. 50%', 'H.E. 100%', 'Vlr H.E.', 'Adic. Not.', 'TOTAL MENSAL'];
+            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'F', 'M', 'FE', 'Total Plantões', 'Salário Base', 'Horas Extras', 'Adic. Noturno', 'TOTAL'];
             const summaryData = operators.map(operator => {
                 const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => { if (totals.hasOwnProperty(value)) totals[value]++; });
@@ -1233,9 +1270,8 @@
                     totals.F.toString(),
                     totals.M.toString(),
                     totals.FE.toString(),
-                    totalPlantoes.toString(), 
-                    he50 + 'h', 
-                    he100 + 'h',
+                    totalPlantoes.toString(),
+                    'R$ ' + overtimeCalc.baseSalary.toFixed(2),
                     'R$ ' + overtimeCalc.totalOvertimeValue.toFixed(2),
                     'R$ ' + nightAllowance.totalValue.toFixed(2),
                     'R$ ' + totalMensal.toFixed(2)
@@ -1246,14 +1282,15 @@
                 head: [summaryHeaders],
                 body: summaryData,
                 startY: yPos,
-                styles: { fontSize: 6, cellPadding: 2, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
-                headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 5.5 },
+                styles: { fontSize: 7, cellPadding: 2.5, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
+                headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
                 columnStyles: { 
-                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 
-                    7: { fontStyle: 'bold' }, 
-                    10: { fontStyle: 'bold', textColor: [255, 140, 0] },
-                    11: { fontStyle: 'bold', textColor: [40, 167, 69] },
-                    12: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 7 }
+                    0: { cellWidth: 28, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 
+                    7: { fontStyle: 'bold' },
+                    8: { fillColor: [240, 240, 240] },
+                    9: { fontStyle: 'bold', textColor: [255, 140, 0] },
+                    10: { fontStyle: 'bold', textColor: [40, 167, 69] },
+                    11: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 8 }
                 },
                 margin: { left: margin, right: margin }
             });
