@@ -623,29 +623,36 @@
         }
 
         function calculateOvertimeValue(operator, totalShifts, he50Hours, he100Hours) {
-            const baseSalary = SALARIES[operator] || 1836.50;
-            const hoursPerShift = 12; // 12 horas por plantão
-            const totalWorkedHours = totalShifts * hoursPerShift;
-            
-            // Valor da hora normal
-            const hourlyRate = baseSalary / totalWorkedHours;
-            
-            // Cálculo das horas extras
-            const he50Value = he50Hours * hourlyRate * 1.5;
-            const he100Value = he100Hours * hourlyRate * 2.0;
-            const totalOvertimeValue = he50Value + he100Value;
-            
-            return {
-                baseSalary: baseSalary,
-                totalWorkedHours: totalWorkedHours,
-                hourlyRate: hourlyRate,
-                he50Hours: he50Hours,
-                he50Value: he50Value,
-                he100Hours: he100Hours,
-                he100Value: he100Value,
-                totalOvertimeValue: totalOvertimeValue
-            };
-        }
+    const baseSalary = SALARIES[operator] || 1836.50;
+
+    let divisor;
+
+    // Heitor trabalha 40h semanais
+    if (operator === 'Heitor Cunha') {
+        divisor = 200;
+    } 
+    // Plantonistas 12x36
+    else {
+        divisor = 220;
+    }
+
+    const hourlyRate = baseSalary / divisor;
+
+    const he50Value = he50Hours * hourlyRate * 1.5;
+    const he100Value = he100Hours * hourlyRate * 2.0;
+    const totalOvertimeValue = he50Value + he100Value;
+
+    return {
+        baseSalary: baseSalary,
+        divisor: divisor,
+        hourlyRate: hourlyRate,
+        he50Hours: he50Hours,
+        he50Value: he50Value,
+        he100Hours: he100Hours,
+        he100Value: he100Value,
+        totalOvertimeValue: totalOvertimeValue
+    };
+}
 
         function saveToLocalStorage() {
             try {
@@ -1414,3 +1421,4 @@
     </script>
 </body>
 </html>
+
