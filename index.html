@@ -568,8 +568,8 @@
     <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
 
     <script>
-        // LISTA ATUALIZADA DE OPERADORES - Carol Mury removida, André Luiz e Wellington Fraga adicionados
-        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Lais Ril', 'André Luiz', 'Luis Butter', 'Wellington Fraga'];
+        // LISTA ATUALIZADA DE OPERADORES - Carol Mury removida, Lorhane Ribeiro e Wellington Fraga adicionados
+        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Lais Ril', 'Lorhane Ribeiro', 'Luis Butter', 'Wellington Fraga'];
         
         // CONFIGURAÇÃO DE SALÁRIOS
         const SALARIES = {
@@ -577,7 +577,7 @@
             'Leticia Pinheiro': 1836.50,
             'Heitor Cunha': 2096.00,
             'Lais Ril': 1836.50,
-            'André Luiz': 1836.50,
+            'Lorhane Ribeiro': 1836.50,
             'Luis Butter': 2453.89,
             'Wellington Fraga': 1836.50
         };
@@ -775,7 +775,7 @@
                     </ul>
                     <li><strong>Noturno (revezamento de duplas):</strong></li>
                     <ul>
-                        <li>Plantão 1: Lais Ril + André Luiz</li>
+                        <li>Plantão 1: Lais Ril + Lorhane Ribeiro</li>
                         <li>Plantão 2: Luis Butter + Wellington Fraga</li>
                         <li><em>(Duplas alternam dia sim, dia não)</em></li>
                     </ul>
@@ -1018,24 +1018,24 @@
             
             const scheduleData = getCurrentMonthData();
             
-            // NÃO limpar o mês - apenas preencher células vazias
+            // Preencher todo o mês, sobrescrevendo os valores
 
-            // Determinar offset baseado no mês
-            // Janeiro começa normal (dia 1 = ímpar)
-            // Para os outros meses, verificar quantos dias teve o mês anterior
-            let startOffset = 0;
-            
-            if (month > 1) {
-                // Calcular quantos dias teve o mês anterior
-                const previousMonthDays = getDaysInMonth(year, month - 1);
-                // Se o mês anterior terminou em dia ímpar (ex: 31), o próximo começa em par
-                // Se terminou em par (ex: 30), o próximo começa em ímpar
-                startOffset = previousMonthDays % 2;
+            // Referência fixa de alternância (informada pelo usuário)
+            // 30/03/2026: Josniel de dia, Lais + Lorhane à noite
+            const anchorUTC = Date.UTC(2026, 2, 30); // mês 0-based
+            const anchorIsOdd = true;
+
+            function isOddSequenceDay(targetYear, targetMonth, targetDay) {
+                const targetUTC = Date.UTC(targetYear, targetMonth - 1, targetDay);
+                const diffMs = targetUTC - anchorUTC;
+                const diffDays = Math.floor(diffMs / 86400000);
+                const sameParity = diffDays % 2 === 0;
+                return sameParity ? anchorIsOdd : !anchorIsOdd;
             }
 
             for (let day = 1; day <= daysInMonth; day++) {
                 // Calcular se é dia "ímpar" ou "par" na sequência contínua
-                const isOddDay = (day + startOffset) % 2 === 1;
+                const isOddDay = isOddSequenceDay(year, month, day);
                 
                 // Inicializar se não existir
                 operators.forEach(op => {
@@ -1043,32 +1043,29 @@
                 });
                 
                 // DIURNO: Josniel (dias ímpares da sequência) e Letícia (dias pares)
-                // Só preencher se a célula estiver vazia
                 if (isOddDay) {
-                    if (!scheduleData['Josniel Rodriguez'][day]) scheduleData['Josniel Rodriguez'][day] = 'D';
-                    if (!scheduleData['Leticia Pinheiro'][day]) scheduleData['Leticia Pinheiro'][day] = '';
+                    scheduleData['Josniel Rodriguez'][day] = 'D';
+                    scheduleData['Leticia Pinheiro'][day] = '';
                 } else {
-                    if (!scheduleData['Leticia Pinheiro'][day]) scheduleData['Leticia Pinheiro'][day] = 'D';
-                    if (!scheduleData['Josniel Rodriguez'][day]) scheduleData['Josniel Rodriguez'][day] = '';
+                    scheduleData['Leticia Pinheiro'][day] = 'D';
+                    scheduleData['Josniel Rodriguez'][day] = '';
                 }
 
                 // NOTURNO: Duplas alternam na sequência contínua
-                // Só preencher se as células estiverem vazias
                 if (isOddDay) {
-                    if (!scheduleData['Lais Ril'][day]) scheduleData['Lais Ril'][day] = 'N';
-                    if (!scheduleData['André Luiz'][day]) scheduleData['André Luiz'][day] = 'N';
-                    if (!scheduleData['Luis Butter'][day]) scheduleData['Luis Butter'][day] = '';
-                    if (!scheduleData['Wellington Fraga'][day]) scheduleData['Wellington Fraga'][day] = '';
+                    scheduleData['Lais Ril'][day] = 'N';
+                    scheduleData['Lorhane Ribeiro'][day] = 'N';
+                    scheduleData['Luis Butter'][day] = '';
+                    scheduleData['Wellington Fraga'][day] = '';
                 } else {
-                    if (!scheduleData['Luis Butter'][day]) scheduleData['Luis Butter'][day] = 'N';
-                    if (!scheduleData['Wellington Fraga'][day]) scheduleData['Wellington Fraga'][day] = 'N';
-                    if (!scheduleData['Lais Ril'][day]) scheduleData['Lais Ril'][day] = '';
-                    if (!scheduleData['André Luiz'][day]) scheduleData['André Luiz'][day] = '';
+                    scheduleData['Luis Butter'][day] = 'N';
+                    scheduleData['Wellington Fraga'][day] = 'N';
+                    scheduleData['Lais Ril'][day] = '';
+                    scheduleData['Lorhane Ribeiro'][day] = '';
                 }
 
                 // BACKUP DIÁRIO: Heitor Cunha todos os dias
-                // Só preencher se a célula estiver vazia
-                if (!scheduleData['Heitor Cunha'][day]) scheduleData['Heitor Cunha'][day] = 'B';
+                scheduleData['Heitor Cunha'][day] = 'B';
             }
 
             updateCalendarDisplay();
@@ -1076,8 +1073,7 @@
             autoSave();
             
             const monthName = getMonthName(month);
-            const startType = startOffset === 0 ? 'ímpares (1, 3, 5...)' : 'pares (2, 4, 6...)';
-            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Células já preenchidas foram preservadas.\n\nInício: Lais+André e Josniel começam em dias ${startType}\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Letícia\n• Noturno: Duplas alternam (Lais+André / Luis+Wellington)\n• Backup Diário: Heitor Cunha`);
+            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Lais+Lorhane à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Letícia\n• Noturno: Duplas alternam (Lais+Lorhane / Luis+Wellington)\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
@@ -1186,7 +1182,7 @@
             doc.text(`  - Dias ímpares: Josniel Rodriguez`, margin + 5, yPos + 5);
             doc.text(`  - Dias pares: Leticia Pinheiro`, margin + 5, yPos + 10);
             doc.text(`• Noturno (duplas alternam dia sim, dia não):`, margin + 5, yPos + 15);
-            doc.text(`  - Plantão 1: Lais Ril + André Luiz`, margin + 5, yPos + 20);
+            doc.text(`  - Plantão 1: Lais Ril + Lorhane Ribeiro`, margin + 5, yPos + 20);
             doc.text(`  - Plantão 2: Luis Butter + Wellington Fraga`, margin + 5, yPos + 25);
             doc.text(`• Backup Diário: Heitor Cunha`, margin + 5, yPos + 30);
             doc.text(`• Adicional Noturno: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h)`, margin + 5, yPos + 35);
@@ -1412,7 +1408,7 @@
             const dataLoaded = loadFromLocalStorage();
             updateCalendar();
             if (dataLoaded) {
-                alert('⚠️ Atenção: A equipe foi atualizada! Carol Mury foi removida e André Luiz e Wellington Fraga foram adicionados.\n\nRecomenda-se limpar os dados antigos e preencher novamente.');
+                alert('⚠️ Atenção: A equipe foi atualizada! Carol Mury foi removida e Lorhane Ribeiro e Wellington Fraga foram adicionados.\n\nRecomenda-se limpar os dados antigos e preencher novamente.');
             }
         } catch (error) {
             console.error('Erro ao inicializar:', error);
@@ -1421,4 +1417,5 @@
     </script>
 </body>
 </html>
+
 
