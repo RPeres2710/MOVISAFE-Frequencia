@@ -9,6 +9,8 @@
     debounceMs: 1200,
     minIntervalMs: 4000,
     compareMarginMs: 2000, // tolerância de relógio (local x servidor)
+    promptLoginIfLocalEmpty: true, // sugere login quando não há dados locais (útil em outra máquina)
+    promptLoginIfLocalHasData: true, // sugere login quando há dados locais (para subir automaticamente)
   };
 
   let suppressSchedule = false;
@@ -79,7 +81,7 @@
     }
     if (!user) {
       const suffix = hint ? ` • ${hint}` : "";
-      setStatus(`☁️ online${suffix}`);
+      setStatus(`☁️ online (clique para entrar)${suffix}`);
       setStatusState("online");
       return;
     }
@@ -478,6 +480,41 @@
     if (!client) return;
 
     hookLocalSave();
+
+    // Se já tem dados locais, mas não está logado, sugere login para habilitar backup automático.
+    if (cfg.autoSave && cfg.promptLoginIfLocalHasData && isSupabaseReady() && navigator.onLine) {
+      try {
+        const local = readLocalState();
+        if (!status?.user && local?.payload) {
+          const k = "__movisafe_prompted_login_has_data__";
+          if (!sessionStorage.getItem(k)) {
+            sessionStorage.setItem(k, "1");
+            const ok = confirm(
+              "Há dados locais salvos neste navegador.\n\nQuer entrar no Supabase agora para subir um backup automático na nuvem?"
+            );
+            if (ok) void supabaseLogin();
+          }
+        }
+      } catch {}
+    }
+
+    // Em outra máquina (ou outro navegador), o localStorage vem vazio.
+    // Se há Supabase configurado e autoLoad ativo, sugere login para carregar o backup.
+    if (cfg.autoLoad && cfg.promptLoginIfLocalEmpty && isSupabaseReady() && navigator.onLine) {
+      try {
+        const local = readLocalState();
+        if (!status?.user && !local?.payload) {
+          const k = "__movisafe_prompted_login__";
+          if (!sessionStorage.getItem(k)) {
+            sessionStorage.setItem(k, "1");
+            const ok = confirm(
+              "Não há dados locais salvos neste navegador.\n\nQuer entrar no Supabase agora para tentar carregar seu backup da nuvem?"
+            );
+            if (ok) void supabaseLogin();
+          }
+        }
+      } catch {}
+    }
 
     const statusEl = getStatusEl();
     if (statusEl && !statusEl.__movisafeBound) {
