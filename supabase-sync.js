@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = "movisafe_data_2026";
   const TABLE = "movisafe_state";
+  const SUPABASE_CFG_STORAGE_KEY = "movisafe_supabase_config";
   const DEFAULT_SYNC_CONFIG = {
     autoLoad: true,
     autoSave: true,
@@ -46,13 +47,48 @@
   }
 
   function isSupabaseReady() {
-    const cfg = window.SUPABASE_CONFIG || {};
+    const cfg = getSupabaseConfig();
     return !!(
       cfg.url &&
       cfg.anonKey &&
       window.supabase &&
       typeof window.supabase.createClient === "function"
     );
+  }
+
+  function getSupabaseConfig() {
+    const cfg = window.SUPABASE_CONFIG || {};
+    if (cfg?.url && cfg?.anonKey) return cfg;
+
+    try {
+      const raw = localStorage.getItem(SUPABASE_CFG_STORAGE_KEY);
+      if (!raw) return cfg;
+      const parsed = JSON.parse(raw);
+      if (parsed?.url && parsed?.anonKey) return parsed;
+    } catch {}
+
+    return cfg;
+  }
+
+  function setSupabaseConfig(cfg) {
+    const safe = {
+      url: String(cfg?.url || "").trim(),
+      anonKey: String(cfg?.anonKey || "").trim(),
+    };
+    if (!safe.url || !safe.anonKey) return false;
+
+    window.SUPABASE_CONFIG = safe;
+    try {
+      localStorage.setItem(SUPABASE_CFG_STORAGE_KEY, JSON.stringify(safe));
+    } catch {}
+
+    // força novo client com a config atualizada
+    try {
+      window.__MOVISAFE_SUPABASE__ = null;
+      delete window.__MOVISAFE_SUPABASE__;
+    } catch {}
+
+    return true;
   }
 
   function getSyncConfig() {
@@ -92,10 +128,10 @@
   }
 
   function requireSupabaseConfig() {
-    const cfg = window.SUPABASE_CONFIG || {};
+    const cfg = getSupabaseConfig();
     if (!cfg.url || !cfg.anonKey) {
       alert(
-        "Supabase não configurado.\n\nPreencha `js/supabase-config.js` com Project URL e anon public key (Settings → API)."
+        "Supabase não configurado.\n\nPreencha `js/supabase-config.js` (ou configure no primeiro clique no ☁️) com Project URL e anon public key (Settings → API)."
       );
       return null;
     }
@@ -145,7 +181,18 @@
 
   async function supabaseLogin() {
     const client = getClient();
-    if (!client) return;
+    if (!client) {
+      // Se não há config, oferece cadastrar por aqui (útil no GitHub Pages sem `supabase-config.js`).
+      const url = (prompt("Supabase Project URL (https://xxxx.supabase.co):") || "").trim();
+      if (!url) return;
+      const anonKey = (prompt("Supabase anon public key:") || "").trim();
+      if (!anonKey) return;
+      const ok = setSupabaseConfig({ url, anonKey });
+      if (!ok) return;
+      await updateCloudStatus();
+      // tenta seguir com login após configurar
+      return void supabaseLogin();
+    }
 
     const email = (prompt("Email (Supabase Auth):") || "").trim();
     if (!email) return;
@@ -471,6 +518,7 @@
   window.cloudSave = cloudSave;
   window.cloudLoad = cloudLoad;
   window.updateCloudStatus = updateCloudStatus;
+  window.setSupabaseConfig = setSupabaseConfig;
 
   document.addEventListener("DOMContentLoaded", async () => {
     const cfg = getSyncConfig();
@@ -519,7 +567,8 @@
     const statusEl = getStatusEl();
     if (statusEl && !statusEl.__movisafeBound) {
       statusEl.__movisafeBound = true;
-      statusEl.title = "Clique para entrar (Supabase). Clique com botão direito para sair.";
+      statusEl.title =
+        "Clique para entrar/configurar (Supabase). Clique com botão direito para sair.\n\nDica: se o status ficar em “(não configurado)”, configure o Project URL + anon key.";
       statusEl.addEventListener("click", () => {
         void supabaseLogin();
       });

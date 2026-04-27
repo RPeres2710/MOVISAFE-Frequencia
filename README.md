@@ -26,6 +26,13 @@ window.SUPABASE_CONFIG = {
 };
 ```
 
+#### GitHub Pages (sem commitar `js/supabase-config.js`)
+
+Se você estiver usando GitHub Pages e não quiser depender do arquivo `js/supabase-config.js` no deploy, o app permite configurar pelo próprio navegador:
+
+- Clique no `☁️` → ele vai pedir **Project URL** e **anon public key** e salvar em `localStorage` como `movisafe_supabase_config`.
+- Depois disso, basta fazer login uma vez e o autosync funciona naquele navegador.
+
 ### 3) Usar no app
 
 - Abra `index.html` no navegador (de preferência servido por um servidor local).

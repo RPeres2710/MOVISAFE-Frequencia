@@ -11,6 +11,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./js/supabase-config.js"></script>
+    <script>
+        // Permite configurar Supabase sem commitar `js/supabase-config.js` (ex.: via GitHub Pages).
+        // Se existir `movisafe_supabase_config` no localStorage, ele é usado automaticamente.
+        (function () {
+            try {
+                if (!window.SUPABASE_CONFIG || !window.SUPABASE_CONFIG.url || !window.SUPABASE_CONFIG.anonKey) {
+                    const raw = localStorage.getItem('movisafe_supabase_config');
+                    if (raw) {
+                        const cfg = JSON.parse(raw);
+                        if (cfg && cfg.url && cfg.anonKey) window.SUPABASE_CONFIG = cfg;
+                    }
+                }
+            } catch {}
+        })();
+    </script>
     <script src="./js/supabase-sync.js" defer></script>
     <style>
         * {
