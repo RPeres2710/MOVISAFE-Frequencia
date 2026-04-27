@@ -6,6 +6,9 @@
     <title>MOVISAFE - Frequência 2026</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./js/supabase-config.js"></script>
+    <script src="./js/supabase-sync.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -63,6 +66,43 @@
             gap: 15px;
             justify-content: center;
             flex-wrap: wrap;
+        }
+
+        .cloud-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            max-width: 420px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .cloud-status::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.55);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+            flex: 0 0 auto;
+        }
+
+        .cloud-status.status-online::before {
+            background: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+        }
+
+        #lockMonthBtn.locked {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.25);
         }
 
         .btn {
@@ -380,6 +420,7 @@
         .selector-option.F { color: #9C27B0; }
         .selector-option.M { color: #E91E63; }
         .selector-option.FE { color: #00BCD4; }
+        .selector-option.FN { color: #F44336; }
         .selector-option.clear { color: #F44336; }
 
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
@@ -388,6 +429,7 @@
         .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
         .day-cell.M { background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%); color: white; }
         .day-cell.FE { background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); color: white; }
+        .day-cell.FN { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -489,6 +531,8 @@
             <button class="btn btn-secondary" onclick="exportToPDF()">📄 Exportar PDF</button>
             <button class="btn btn-secondary" onclick="clearMonth()">🗑️ Limpar Mês</button>
             <button class="btn btn-secondary" onclick="clearAllData()">🗑️ Limpar Dados Salvos</button>
+            <button class="btn btn-secondary" id="lockMonthBtn" onclick="toggleMonthLock()">🔒 Bloquear Mês</button>
+            <span id="cloudStatus" class="cloud-status"></span>
         </div>
 
         <div class="main-content">
@@ -562,6 +606,7 @@
         <div class="selector-option F" onclick="setCellValue('F')">F - Férias</div>
         <div class="selector-option M" onclick="setCellValue('M')">M - Médico</div>
         <div class="selector-option FE" onclick="setCellValue('FE')">FE - Feriado</div>
+        <div class="selector-option FN" onclick="setCellValue('FN')">FN - Falta</div>
         <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
     </div>
 
@@ -585,7 +630,56 @@
         // Estrutura: scheduleData[month][operator][day]
         let allScheduleData = {};
         let overtimeData = {};
+        let lockedMonths = {};
         let currentCellId = null;
+
+        const LOCK_PASSWORD = '051019';
+
+        function getSelectedMonthKey() {
+            return document.getElementById('monthSelect').value;
+        }
+
+        function isMonthLocked(monthKey) {
+            const key = monthKey || getSelectedMonthKey();
+            return !!lockedMonths[key];
+        }
+
+        function updateLockUI() {
+            const locked = isMonthLocked();
+            const btn = document.getElementById('lockMonthBtn');
+            if (btn) {
+                btn.textContent = locked ? '🔓 Desbloquear Mês' : '🔒 Bloquear Mês';
+                btn.classList.toggle('locked', locked);
+            }
+            document.querySelectorAll('.hours-input').forEach((el) => {
+                el.disabled = locked;
+            });
+        }
+
+        function toggleMonthLock() {
+            const monthKey = getSelectedMonthKey();
+            const locked = isMonthLocked(monthKey);
+
+            if (locked) {
+                const pass = (prompt('Senha para desbloquear o mês:') || '').trim();
+                if (pass !== LOCK_PASSWORD) {
+                    alert('❌ Senha incorreta.');
+                    return;
+                }
+                delete lockedMonths[monthKey];
+                alert('✅ Mês desbloqueado.');
+            } else {
+                const ok = confirm(
+                    '🔒 Bloquear este mês?\n\nDepois de bloqueado, não será possível editar a escala nem as H.E. deste mês sem a senha.'
+                );
+                if (!ok) return;
+                lockedMonths[monthKey] = true;
+                alert('🔒 Mês bloqueado.');
+            }
+
+            updateLockUI();
+            autoSave();
+        }
         
         // Função auxiliar para obter dados do mês atual
         function getCurrentMonthData() {
@@ -622,7 +716,7 @@
             };
         }
 
-        function calculateOvertimeValue(operator, totalShifts, he50Hours, he100Hours) {
+        function calculateOvertimeValue(operator, totalShifts, he50Units, he100Units) {
     const baseSalary = SALARIES[operator] || 1836.50;
 
     let divisor;
@@ -638,6 +732,8 @@
 
     const hourlyRate = baseSalary / divisor;
 
+    const he50Hours = he50Units * 6;
+    const he100Hours = he100Units * 12;
     const he50Value = he50Hours * hourlyRate * 1.5;
     const he100Value = he100Hours * hourlyRate * 2.0;
     const totalOvertimeValue = he50Value + he100Value;
@@ -646,8 +742,10 @@
         baseSalary: baseSalary,
         divisor: divisor,
         hourlyRate: hourlyRate,
+        he50Units: he50Units,
         he50Hours: he50Hours,
         he50Value: he50Value,
+        he100Units: he100Units,
         he100Hours: he100Hours,
         he100Value: he100Value,
         totalOvertimeValue: totalOvertimeValue
@@ -661,6 +759,7 @@
                 const dataToSave = {
                     allScheduleData: allScheduleData,
                     overtimeData: overtimeData,
+                    lockedMonths: lockedMonths,
                     lastSelectedMonth: selectedMonth,
                     lastSaved: new Date().toISOString()
                 };
@@ -678,10 +777,13 @@
                     const data = JSON.parse(savedData);
                     allScheduleData = data.allScheduleData || {};
                     overtimeData = data.overtimeData || {};
+                    lockedMonths = data.lockedMonths || {};
                     
                     if (data.lastSelectedMonth) {
                         document.getElementById('monthSelect').value = data.lastSelectedMonth;
                     }
+
+                    updateLockUI();
                     
                     return true;
                 }
@@ -694,6 +796,7 @@
 
         function clearLocalStorage() {
             localStorage.removeItem('movisafe_data_2026');
+            lockedMonths = {};
         }
 
         function autoSave() {
@@ -705,6 +808,14 @@
 
         function clearAllData() {
             if (confirm('⚠️ Tem certeza que deseja limpar TODOS os dados salvos?\n\nEsta ação não pode ser desfeita!')) {
+                const hasAnyLocked = Object.values(lockedMonths || {}).some(Boolean);
+                if (hasAnyLocked) {
+                    const pass = (prompt('Há meses bloqueados. Informe a senha para limpar tudo:') || '').trim();
+                    if (pass !== LOCK_PASSWORD) {
+                        alert('❌ Senha incorreta. Operação cancelada.');
+                        return;
+                    }
+                }
                 clearLocalStorage();
                 clearMonth();
                 alert('✅ Todos os dados foram limpos!');
@@ -740,6 +851,11 @@
 
         function updateOvertime(operator, type, value) {
             const selectedMonth = document.getElementById('monthSelect').value;
+            if (isMonthLocked(selectedMonth)) {
+                alert('🔒 Mês bloqueado. Desbloqueie para editar.');
+                updateDashboard();
+                return;
+            }
             if (!overtimeData[selectedMonth]) overtimeData[selectedMonth] = {};
             if (!overtimeData[selectedMonth][operator]) {
                 overtimeData[selectedMonth][operator] = { he100: 0, he50: 0 };
@@ -828,10 +944,16 @@
             updateScaleInfo();
             updateCalendarDisplay();
             updateDashboard();
+            updateLockUI();
             document.querySelector('.loading-message').style.display = 'none';
         }
 
         function showCellSelector(cellId, event) {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (isMonthLocked(selectedMonth)) {
+                alert('🔒 Mês bloqueado. Desbloqueie para editar.');
+                return;
+            }
             event.stopPropagation();
             currentCellId = cellId;
             const selector = document.getElementById('cellSelector');
@@ -845,11 +967,18 @@
 
         function setCellValue(value) {
             if (!currentCellId) return;
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (isMonthLocked(selectedMonth)) {
+                document.getElementById('cellSelector').style.display = 'none';
+                currentCellId = null;
+                alert('🔒 Mês bloqueado. Desbloqueie para editar.');
+                return;
+            }
             const cell = document.getElementById(currentCellId);
             const [operator, day] = currentCellId.split('-');
             cell.textContent = value;
             // Remove todas as classes possíveis antes de adicionar a nova
-            cell.className = cell.className.replace(/\s(D|N|B|F|M|FE)\b/g, '');
+            cell.className = cell.className.replace(/\s(D|N|B|F|M|FE|FN)\b/g, '');
             if (value) cell.classList.add(value);
             
             const scheduleData = getCurrentMonthData();
@@ -866,22 +995,36 @@
             const dashboardContent = document.getElementById('dashboardContent');
             dashboardContent.innerHTML = '';
             
+            const selectedMonth = getSelectedMonthKey();
+            const locked = isMonthLocked(selectedMonth);
             const scheduleData = getCurrentMonthData();
+            const dayOperators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha'];
 
             operators.forEach(operator => {
-                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0 };
+                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0, FN: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => {
                     if (totals.hasOwnProperty(value)) totals[value]++;
                 });
                 
                 const totalPlantoes = totals.D + totals.N + totals.B;
-                const horasExtras100 = getOvertime(operator, 'he100');
-                const horasExtras50 = getOvertime(operator, 'he50');
+                const isDay = dayOperators.includes(operator);
+                const feCount = totals.FE;
+                const extraHe100Units = isDay ? feCount : 0;
+                const extraHe50Units = isDay ? 0 : feCount;
+                const manualHe100 = getOvertime(operator, 'he100');
+                const manualHe50 = getOvertime(operator, 'he50');
+                const totalHe100Units = manualHe100 + extraHe100Units;
+                const totalHe50Units = manualHe50 + extraHe50Units;
                 const nightAllowance = calculateNightAllowance(totals.N);
-                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, horasExtras50, horasExtras100);
+                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, totalHe50Units, totalHe100Units);
+                
+                // Calcular desconto por faltas não abonadas
+                const fnCount = totals.FN;
+                const shiftValue = (overtimeCalc.baseSalary / overtimeCalc.divisor) * 12;
+                const discount = fnCount * shiftValue;
                 
                 // Calcular total mensal
-                const totalMensal = overtimeCalc.baseSalary + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue;
+                const totalMensal = overtimeCalc.baseSalary + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue - discount;
 
                 const operatorDiv = document.createElement('div');
                 operatorDiv.className = 'operator-summary';
@@ -894,15 +1037,16 @@
                         <div class="summary-item"><span>Férias:</span><span class="summary-value">${totals.F}</span></div>
                         <div class="summary-item"><span>Médico:</span><span class="summary-value">${totals.M}</span></div>
                         <div class="summary-item"><span>Feriado:</span><span class="summary-value">${totals.FE}</span></div>
+                        <div class="summary-item"><span>Falta:</span><span class="summary-value">${totals.FN}</span></div>
                         <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
                         <div class="summary-item"><span>Salário Base:</span><span class="summary-value money">R$ ${overtimeCalc.baseSalary.toFixed(2)}</span></div>
-                        <div class="editable-item"><span>H.E. 100%:</span><input type="number" class="hours-input" value="${horasExtras100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0"></div>
-                        <div class="editable-item"><span>H.E. 50%:</span><input type="number" class="hours-input" value="${horasExtras50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0"></div>
+                        <div class="editable-item"><span>H.E. 100% (unidades):</span><input type="number" class="hours-input" value="${manualHe100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0" ${locked ? 'disabled' : ''}></div>
+                        <div class="editable-item"><span>H.E. 50% (unidades):</span><input type="number" class="hours-input" value="${manualHe50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0" ${locked ? 'disabled' : ''}></div>
                     </div>
                 `;
 
                 // Adicionar seção de horas extras se houver
-                if (horasExtras50 > 0 || horasExtras100 > 0) {
+                if (totalHe50Units > 0 || totalHe100Units > 0 || feCount > 0) {
                     const overtimeDiv = document.createElement('div');
                     overtimeDiv.className = 'night-allowance-section';
                     overtimeDiv.style.background = 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)';
@@ -910,30 +1054,28 @@
                     overtimeDiv.innerHTML = `
                         <h4>⏰ Horas Extras</h4>
                         <div class="night-calculation">
+                            ${feCount > 0 ? `
                             <div class="summary-item">
-                                <span>Horas Trabalhadas:</span>
-                                <span class="summary-value">${overtimeCalc.totalWorkedHours}h</span>
+                                <span>Extras por Feriado (${feCount}):</span>
+                                <span class="summary-value">${isDay ? `${feCount} un. 100%` : `${feCount} un. 50%`}</span>
                             </div>
+                            ` : ''}
+                            ${totalHe50Units > 0 ? `
                             <div class="summary-item">
-                                <span>Valor/Hora:</span>
-                                <span class="summary-value">R$ ${overtimeCalc.hourlyRate.toFixed(2)}</span>
-                            </div>
-                            ${horasExtras50 > 0 ? `
-                            <div class="summary-item">
-                                <span>H.E. 50% (${horasExtras50}h):</span>
+                                <span>H.E. 50% (${totalHe50Units} un. = ${overtimeCalc.he50Hours}h):</span>
                                 <span class="summary-value money">R$ ${overtimeCalc.he50Value.toFixed(2)}</span>
                             </div>
                             <div class="calculation-detail">
-                                ${horasExtras50}h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 1,5
+                                ${totalHe50Units} un. × 6h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 1,5
                             </div>
                             ` : ''}
-                            ${horasExtras100 > 0 ? `
+                            ${totalHe100Units > 0 ? `
                             <div class="summary-item">
-                                <span>H.E. 100% (${horasExtras100}h):</span>
+                                <span>H.E. 100% (${totalHe100Units} un. = ${overtimeCalc.he100Hours}h):</span>
                                 <span class="summary-value money">R$ ${overtimeCalc.he100Value.toFixed(2)}</span>
                             </div>
                             <div class="calculation-detail">
-                                ${horasExtras100}h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 2,0
+                                ${totalHe100Units} un. × 12h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 2,0
                             </div>
                             ` : ''}
                             <div class="summary-item" style="margin-top: 10px; border-top: 2px solid #FF9800; padding-top: 10px;">
@@ -943,6 +1085,35 @@
                         </div>
                     `;
                     operatorDiv.appendChild(overtimeDiv);
+                }
+
+                // Adicionar desconto por faltas se houver
+                if (fnCount > 0) {
+                    const discountDiv = document.createElement('div');
+                    discountDiv.className = 'night-allowance-section';
+                    discountDiv.style.background = 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)';
+                    discountDiv.style.borderColor = '#F44336';
+                    discountDiv.innerHTML = `
+                        <h4>❌ Descontos por Faltas</h4>
+                        <div class="night-calculation">
+                            <div class="summary-item">
+                                <span>Faltas Não Abonadas:</span>
+                                <span class="summary-value">${fnCount}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Valor por Plantão:</span>
+                                <span class="summary-value">R$ ${shiftValue.toFixed(2)}</span>
+                            </div>
+                            <div class="summary-item" style="margin-top: 10px; border-top: 2px solid #F44336; padding-top: 10px;">
+                                <span><strong>Total Desconto:</strong></span>
+                                <span class="summary-value money"><strong>R$ ${discount.toFixed(2)}</strong></span>
+                            </div>
+                            <div class="calculation-detail">
+                                ${fnCount} faltas × R$ ${shiftValue.toFixed(2)} (Salário Base ÷ ${overtimeCalc.divisor}h × 12h)
+                            </div>
+                        </div>
+                    `;
+                    operatorDiv.appendChild(discountDiv);
                 }
 
                 // Adicionar adicional noturno se houver
@@ -999,6 +1170,12 @@
                             <span>Horas Extras:</span>
                             <span class="summary-value money">R$ ${overtimeCalc.totalOvertimeValue.toFixed(2)}</span>
                         </div>
+                        ${fnCount > 0 ? `
+                        <div class="summary-item">
+                            <span>Descontos (Faltas):</span>
+                            <span class="summary-value money" style="color: #F44336;">-R$ ${discount.toFixed(2)}</span>
+                        </div>
+                        ` : ''}
                         <div class="summary-item" style="margin-top: 10px; border-top: 3px solid #4CAF50; padding-top: 10px; font-size: 16px;">
                             <span><strong>TOTAL A RECEBER:</strong></span>
                             <span class="summary-value money"><strong>R$ ${totalMensal.toFixed(2)}</strong></span>
@@ -1013,6 +1190,10 @@
 
         function autoFillMonth() {
             const selectedMonth = document.getElementById('monthSelect').value;
+            if (isMonthLocked(selectedMonth)) {
+                alert('🔒 Mês bloqueado. Desbloqueie para editar.');
+                return;
+            }
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
             
@@ -1091,7 +1272,7 @@
                         const value = scheduleData[operator]?.[day] || '';
                         cell.textContent = value;
                         // Remove todas as classes possíveis
-                        cell.className = cell.className.replace(/\s(D|N|B|F|M|FE)\b/g, '');
+                        cell.className = cell.className.replace(/\s(D|N|B|F|M|FE|FN)\b/g, '');
                         if (value) cell.classList.add(value);
                         if (isWeekend(year, month, day) && !cell.classList.contains('weekend')) {
                             cell.classList.add('weekend');
@@ -1103,6 +1284,10 @@
 
         function clearMonth() {
             const selectedMonth = document.getElementById('monthSelect').value;
+            if (isMonthLocked(selectedMonth)) {
+                alert('🔒 Mês bloqueado. Desbloqueie para editar.');
+                return;
+            }
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = getDaysInMonth(year, month);
             
@@ -1195,7 +1380,7 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
-            doc.text('D = Diurno    N = Noturno    B = Backup    F = Férias    M = Médico    FE = Feriado', margin + 25, yPos);
+            doc.text('D = Diurno    N = Noturno    B = Backup    F = Férias    M = Médico    FE = Feriado    FN = Falta', margin + 25, yPos);
             yPos += 15;
 
             const maxDaysPerTable = 16;
@@ -1237,6 +1422,7 @@
                             else if (value === 'F') { data.cell.styles.fillColor = [220, 180, 255]; data.cell.styles.fontStyle = 'bold'; }
                             else if (value === 'M') { data.cell.styles.fillColor = [255, 182, 193]; data.cell.styles.fontStyle = 'bold'; }
                             else if (value === 'FE') { data.cell.styles.fillColor = [173, 216, 230]; data.cell.styles.fontStyle = 'bold'; }
+                            else if (value === 'FN') { data.cell.styles.fillColor = [244, 67, 54]; data.cell.styles.fontStyle = 'bold'; }
                         }
                     },
                     margin: { left: margin, right: margin }
@@ -1255,16 +1441,26 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'F', 'M', 'FE', 'Total Plantões', 'Salário Base', 'Horas Extras', 'Adic. Noturno', 'TOTAL'];
+            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'F', 'M', 'FE', 'FN', 'Total Plantões', 'Salário Base', 'Horas Extras', 'Adic. Noturno', 'Descontos', 'TOTAL'];
+            const dayOperators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha'];
             const summaryData = operators.map(operator => {
-                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0 };
+                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0, FN: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => { if (totals.hasOwnProperty(value)) totals[value]++; });
                 const totalPlantoes = totals.D + totals.N + totals.B;
-                const he100 = getOvertime(operator, 'he100');
-                const he50 = getOvertime(operator, 'he50');
+                const isDay = dayOperators.includes(operator);
+                const feCount = totals.FE;
+                const extraHe100Units = isDay ? feCount : 0;
+                const extraHe50Units = isDay ? 0 : feCount;
+                const manualHe100 = getOvertime(operator, 'he100');
+                const manualHe50 = getOvertime(operator, 'he50');
+                const totalHe100Units = manualHe100 + extraHe100Units;
+                const totalHe50Units = manualHe50 + extraHe50Units;
                 const nightAllowance = calculateNightAllowance(totals.N);
-                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, he50, he100);
-                const totalMensal = overtimeCalc.baseSalary + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue;
+                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, totalHe50Units, totalHe100Units);
+                const fnCount = totals.FN;
+                const shiftValue = (overtimeCalc.baseSalary / overtimeCalc.divisor) * 12;
+                const discount = fnCount * shiftValue;
+                const totalMensal = overtimeCalc.baseSalary + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue - discount;
                 return [
                     operator, 
                     totals.D.toString(), 
@@ -1273,10 +1469,12 @@
                     totals.F.toString(),
                     totals.M.toString(),
                     totals.FE.toString(),
+                    totals.FN.toString(),
                     totalPlantoes.toString(),
                     'R$ ' + overtimeCalc.baseSalary.toFixed(2),
                     'R$ ' + overtimeCalc.totalOvertimeValue.toFixed(2),
                     'R$ ' + nightAllowance.totalValue.toFixed(2),
+                    fnCount > 0 ? 'R$ ' + discount.toFixed(2) : '',
                     'R$ ' + totalMensal.toFixed(2)
                 ];
             });
@@ -1288,12 +1486,13 @@
                 styles: { fontSize: 7, cellPadding: 2.5, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
                 headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
                 columnStyles: { 
-                    0: { cellWidth: 28, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 
-                    7: { fontStyle: 'bold' },
-                    8: { fillColor: [240, 240, 240] },
-                    9: { fontStyle: 'bold', textColor: [255, 140, 0] },
-                    10: { fontStyle: 'bold', textColor: [40, 167, 69] },
-                    11: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 8 }
+                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 
+                    8: { fontStyle: 'bold' },
+                    9: { fillColor: [240, 240, 240] },
+                    10: { fontStyle: 'bold', textColor: [255, 140, 0] },
+                    11: { fontStyle: 'bold', textColor: [40, 167, 69] },
+                    12: { fontStyle: 'bold', textColor: [244, 67, 54] },
+                    13: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 8 }
                 },
                 margin: { left: margin, right: margin }
             });
@@ -1310,10 +1509,13 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
-            doc.text(`• Cálculo baseado em plantões de 12 horas`, margin + 5, yPos);
-            doc.text(`• Hora Extra 50%: (Salário Base ÷ Horas Trabalhadas) × 1,5`, margin + 5, yPos + 5);
-            doc.text(`• Hora Extra 100%: (Salário Base ÷ Horas Trabalhadas) × 2,0`, margin + 5, yPos + 10);
-            yPos += 20;
+            doc.text(`• Cada unidade de H.E. 100% equivale a 12 horas`, margin + 5, yPos);
+            doc.text(`• Cada unidade de H.E. 50% equivale a 6 horas`, margin + 5, yPos + 5);
+            doc.text(`• Feriados (FE) adicionam 1 unidade extra (100% diurno, 50% noturno)`, margin + 5, yPos + 10);
+            doc.text(`• Faltas não abonadas (FN) descontam o valor proporcional do plantão`, margin + 5, yPos + 15);
+            doc.text(`• Hora Extra 50%: (Salário Base ÷ Horas Trabalhadas) × 1,5`, margin + 5, yPos + 20);
+            doc.text(`• Hora Extra 100%: (Salário Base ÷ Horas Trabalhadas) × 2,0`, margin + 5, yPos + 25);
+            yPos += 35;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
@@ -1407,9 +1609,6 @@
         try {
             const dataLoaded = loadFromLocalStorage();
             updateCalendar();
-            if (dataLoaded) {
-                alert('⚠️ Atenção: A equipe foi atualizada! Carol Mury foi removida e Lorhane Ribeiro e Wellington Fraga foram adicionados.\n\nRecomenda-se limpar os dados antigos e preencher novamente.');
-            }
         } catch (error) {
             console.error('Erro ao inicializar:', error);
             alert('Erro ao inicializar a aplicação.');
@@ -1417,5 +1616,6 @@
     </script>
 </body>
 </html>
+
 
 
