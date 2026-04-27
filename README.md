@@ -2,6 +2,8 @@
 
 Este projeto é um `index.html` (front-end puro) que salva a escala/frequência no `localStorage` e, opcionalmente, faz backup na nuvem via Supabase (por usuário).
 
+> Importante: `localStorage` é por navegador/máquina. Se você abrir em outra máquina ou em outro navegador, os dados locais vão estar vazios — para “levar” os dados junto, use o login do Supabase (backup na nuvem) com o mesmo usuário.
+
 ### 1) Configurar no Supabase
 
 1. Crie um projeto no Supabase.

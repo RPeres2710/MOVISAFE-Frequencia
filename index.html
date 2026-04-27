@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOVISAFE - Frequência 2026</title>
+    <link rel="icon" href="./favicon.ico" sizes="any">
+    <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -618,9 +621,16 @@
     <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
 
     <script>
-        // Status básico (funciona mesmo se arquivos do Supabase não carregarem no GitHub).
+        // Status básico (fallback). Importante: não sobrescreve o status do Supabase
+        // quando `js/supabase-sync.js` estiver ativo.
         (function () {
+            function hasSupabaseSync() {
+                return typeof window.updateCloudStatus === 'function' || typeof window.supabaseLogin === 'function';
+            }
+
             function setCloudStatusBasic() {
+                if (hasSupabaseSync()) return;
+
                 const el = document.getElementById('cloudStatus');
                 if (!el) return;
 
