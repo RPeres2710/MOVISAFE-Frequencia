@@ -100,6 +100,11 @@
             box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
         }
 
+        .cloud-status.status-offline::before {
+            background: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+        }
+
         #lockMonthBtn.locked {
             background: rgba(0, 0, 0, 0.25);
             border: 1px solid rgba(255, 255, 255, 0.25);
@@ -613,6 +618,28 @@
     <div id="autoSaveIndicator" class="auto-save-indicator">💾 Dados salvos automaticamente</div>
 
     <script>
+        // Status básico (funciona mesmo se arquivos do Supabase não carregarem no GitHub).
+        (function () {
+            function setCloudStatusBasic() {
+                const el = document.getElementById('cloudStatus');
+                if (!el) return;
+
+                if (navigator.onLine) {
+                    el.textContent = '☁️ ONLINE';
+                    el.classList.add('status-online');
+                    el.classList.remove('status-offline');
+                } else {
+                    el.textContent = '☁️ OFFLINE';
+                    el.classList.add('status-offline');
+                    el.classList.remove('status-online');
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', setCloudStatusBasic);
+            window.addEventListener('online', setCloudStatusBasic);
+            window.addEventListener('offline', setCloudStatusBasic);
+        })();
+
         // LISTA ATUALIZADA DE OPERADORES - Carol Mury removida, Lorhane Ribeiro e Wellington Fraga adicionados
         const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Lais Ril', 'Lorhane Ribeiro', 'Luis Butter', 'Wellington Fraga'];
         
@@ -1616,6 +1643,5 @@
     </script>
 </body>
 </html>
-
 
 
