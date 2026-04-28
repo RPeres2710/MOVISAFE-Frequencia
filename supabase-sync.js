@@ -7,6 +7,7 @@
   const SUPABASE_CFG_STORAGE_KEY = "movisafe_supabase_config";
   const APP_ACCOUNT_STORAGE_KEY = "movisafe_app_account";
   const ACCESS_KEY_STORAGE_KEY = "movisafe_access_key";
+  const LEGACY_SHARED_KEY_STORAGE_KEY = "movisafe_shared_key";
   const DEFAULT_SYNC_CONFIG = {
     autoLoad: true,
     autoSave: true,
@@ -18,6 +19,7 @@
     autoSaveImmediatelyAfterLogin: true, // após login, empurra local->nuvem quando local for mais recente
     sharedAutoMode: false, // legado (modo link ?k=...). Desativado por padrão.
     appAccountsMode: true, // modo "2 usuários/2 senhas" no código (sem Supabase Auth)
+    requestTimeoutMs: 12000,
   };
 
   let suppressSchedule = false;
@@ -178,6 +180,41 @@
       ...DEFAULT_SYNC_CONFIG,
       ...cfg,
     };
+  }
+
+  function withTimeout(promise, ms, label) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label || "timeout")), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+  }
+
+  function getLegacyLinkKey() {
+    // Compatibilidade com modo antigo (?k=...)
+    try {
+      const url = new URL(window.location.href);
+      const fromUrl = (url.searchParams.get("k") || url.searchParams.get("key") || "").trim();
+      if (fromUrl) return fromUrl;
+    } catch {}
+    return "";
+  }
+
+  function getLegacyStoredKey() {
+    try {
+      return (localStorage.getItem(LEGACY_SHARED_KEY_STORAGE_KEY) || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  async function fetchSharedRowByKey(client, key) {
+    const cfg = getSyncConfig();
+    return withTimeout(
+      client.from(SHARED_TABLE).select("payload, updated_at").eq("storage_key", key).maybeSingle(),
+      cfg.requestTimeoutMs,
+      "fetch_shared_timeout"
+    );
   }
 
   async function setAppAccount(account) {
@@ -410,11 +447,7 @@
   async function fetchCloudRow(client) {
     if (isSharedMode()) {
       const sharedKey = getSharedKey();
-      return client
-        .from(SHARED_TABLE)
-        .select("payload, updated_at")
-        .eq("storage_key", sharedKey)
-        .maybeSingle();
+      return fetchSharedRowByKey(client, sharedKey);
     }
 
     return client.from(TABLE).select("payload, updated_at").eq("storage_key", STORAGE_KEY).maybeSingle();
@@ -637,15 +670,43 @@
         return;
       }
 
-      const { data, error } = await fetchCloudRow(client);
+      let cloudRes;
+      try {
+        cloudRes = await fetchCloudRow(client);
+      } catch (e) {
+        lastSyncHint = "erro de rede/timeout";
+        console.warn("[movisafe] fetchCloudRow failed:", e);
+        renderStatus({ user: u, hint: lastSyncHint, authError: false });
+        return;
+      }
+      const { data, error } = cloudRes;
       if (error) {
         lastSyncHint = "erro ao carregar";
+        console.warn("[movisafe] cloud load error:", error);
         renderStatus({ user, hint: lastSyncHint, authError: false });
         return;
       }
 
-      const cloudPayload = data?.payload || null;
-      const cloudMs = Date.parse(data?.updated_at || "") || 0;
+      let cloudPayload = data?.payload || null;
+      let cloudMs = Date.parse(data?.updated_at || "") || 0;
+
+      // Compatibilidade: se não achou backup na chave nova, tenta buscar pela chave antiga (?k=... ou localStorage antigo)
+      if (!cloudPayload) {
+        const legacyKey = getLegacyLinkKey() || getLegacyStoredKey();
+        if (legacyKey && legacyKey !== getSharedKey()) {
+          try {
+            const legacyRes = await fetchSharedRowByKey(client, legacyKey);
+            if (!legacyRes?.error && legacyRes?.data?.payload) {
+              cloudPayload = legacyRes.data.payload;
+              cloudMs = Date.parse(legacyRes.data.updated_at || "") || 0;
+              lastSyncHint = "backup antigo encontrado";
+              renderStatus({ user: u, hint: lastSyncHint, authError: false });
+            }
+          } catch (e) {
+            console.warn("[movisafe] legacy fetch failed:", e);
+          }
+        }
+      }
       const localMs = local.lastSavedMs || 0;
       const margin = cfg.compareMarginMs;
 
