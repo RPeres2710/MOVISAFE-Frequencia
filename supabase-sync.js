@@ -5,7 +5,8 @@
   const TABLE = "movisafe_state";
   const SHARED_TABLE = "movisafe_shared_state";
   const SUPABASE_CFG_STORAGE_KEY = "movisafe_supabase_config";
-  const SHARED_KEY_STORAGE_KEY = "movisafe_shared_key";
+  const APP_ACCOUNT_STORAGE_KEY = "movisafe_app_account";
+  const ACCESS_KEY_STORAGE_KEY = "movisafe_access_key";
   const DEFAULT_SYNC_CONFIG = {
     autoLoad: true,
     autoSave: true,
@@ -15,7 +16,8 @@
     promptLoginIfLocalEmpty: true, // sugere login quando não há dados locais (útil em outra máquina)
     promptLoginIfLocalHasData: true, // sugere login quando há dados locais (para subir automaticamente)
     autoSaveImmediatelyAfterLogin: true, // após login, empurra local->nuvem quando local for mais recente
-    sharedAutoMode: true, // se houver chave compartilhada (URL/localStorage), usa modo sem login
+    sharedAutoMode: false, // legado (modo link ?k=...). Desativado por padrão.
+    appAccountsMode: true, // modo "2 usuários/2 senhas" no código (sem Supabase Auth)
   };
 
   let suppressSchedule = false;
@@ -61,54 +63,66 @@
   }
 
   function getSharedKey() {
+    // Neste projeto, "sharedKey" = chave de acesso derivada do usuário/senha do app.
+    // Não depende de URL (?k=...), para não confundir com Supabase Auth.
     try {
-      const url = new URL(window.location.href);
-      const fromUrl = (url.searchParams.get("k") || url.searchParams.get("key") || "").trim();
-      if (fromUrl) {
-        try {
-          localStorage.setItem(SHARED_KEY_STORAGE_KEY, fromUrl);
-        } catch {}
-        return fromUrl;
-      }
-    } catch {}
-
-    try {
-      return (localStorage.getItem(SHARED_KEY_STORAGE_KEY) || "").trim();
+      return (localStorage.getItem(ACCESS_KEY_STORAGE_KEY) || "").trim();
     } catch {
       return "";
     }
   }
 
-  function generateSharedKey() {
-    // 32 chars url-safe
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    const bytes = new Uint8Array(32);
-    (window.crypto || window.msCrypto).getRandomValues(bytes);
-    let out = "";
-    for (const b of bytes) out += alphabet[b % alphabet.length];
-    return out;
+  function getAppAccounts() {
+    const cfg = getSyncConfig();
+    if (!cfg.appAccountsMode) return null;
+
+    const accounts = window.MOVISAFE_APP_ACCOUNTS;
+    if (!accounts || typeof accounts !== "object") return null;
+
+    const entries = Object.entries(accounts).filter(
+      ([k, v]) => typeof k === "string" && k.trim() && typeof v === "string" && v
+    );
+
+    if (entries.length === 0) return null;
+    return Object.fromEntries(entries.map(([k, v]) => [String(k).trim(), String(v)]));
   }
 
-  function buildSharedUrl(sharedKey) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("k", sharedKey);
-    return url.toString();
-  }
-
-  async function copyToClipboard(text) {
+  function getSelectedAccount() {
     try {
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
+      return (localStorage.getItem(APP_ACCOUNT_STORAGE_KEY) || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function setSelectedAccount(account) {
+    try {
+      localStorage.setItem(APP_ACCOUNT_STORAGE_KEY, String(account || "").trim());
     } catch {}
-    return false;
+  }
+
+  function clearSelectedAccount() {
+    try {
+      localStorage.removeItem(APP_ACCOUNT_STORAGE_KEY);
+      localStorage.removeItem(ACCESS_KEY_STORAGE_KEY);
+    } catch {}
+  }
+
+  async function sha256Base64Url(input) {
+    const enc = new TextEncoder();
+    const data = enc.encode(String(input));
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    const bytes = new Uint8Array(digest);
+    let binary = "";
+    for (const b of bytes) binary += String.fromCharCode(b);
+    const base64 = btoa(binary);
+    return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 
   function isSharedMode() {
-    const cfg = getSyncConfig();
-    if (!cfg.sharedAutoMode) return false;
-    return !!getSharedKey();
+    // "Shared mode" aqui significa: persistência sem Supabase Auth (usuários/senhas no código).
+    const accounts = getAppAccounts();
+    return !!accounts;
   }
 
   function getSupabaseConfig() {
@@ -154,6 +168,70 @@
     };
   }
 
+  async function setAppAccount(account) {
+    const accounts = getAppAccounts();
+    if (!accounts) return { ok: false, reason: "no_app_accounts" };
+
+    const acc = String(account || "").trim();
+    if (!acc || !accounts[acc]) return { ok: false, reason: "invalid_account" };
+
+    setSelectedAccount(acc);
+    const accessKey = await sha256Base64Url(`movisafe:${acc}:${accounts[acc]}`);
+    try {
+      localStorage.setItem(ACCESS_KEY_STORAGE_KEY, accessKey);
+    } catch {}
+
+    // força recriar client com o header atualizado
+    try {
+      window.__MOVISAFE_SUPABASE__ = null;
+      delete window.__MOVISAFE_SUPABASE__;
+    } catch {}
+
+    return { ok: true, account: acc, accessKey };
+  }
+
+  async function ensureAppAccount({ promptIfMissing }) {
+    const accounts = getAppAccounts();
+    if (!accounts) return { ok: false, reason: "no_app_accounts" };
+
+    let acc = getSelectedAccount();
+    if (acc && accounts[acc]) {
+      return await setAppAccount(acc);
+    }
+
+    const keys = Object.keys(accounts);
+    const def = String(window.MOVISAFE_APP_DEFAULT_ACCOUNT || keys[0] || "").trim();
+
+    if (!promptIfMissing) {
+      if (!def || !accounts[def]) return { ok: false, reason: "no_account_selected" };
+      return await setAppAccount(def);
+    }
+
+    const chosen = (prompt(`Usuário (${keys.join(" / ")}):`, def) || "").trim();
+    if (!chosen || !accounts[chosen]) return { ok: false, reason: "invalid_account" };
+
+    return await setAppAccount(chosen);
+  }
+
+  async function appLogin() {
+    const res = await ensureAppAccount({ promptIfMissing: true });
+    if (!res.ok) return res;
+    lastSyncHint = "sincronizando…";
+    await updateCloudStatus();
+    await autoSyncOnLogin();
+    return res;
+  }
+
+  function appLogout() {
+    clearSelectedAccount();
+    lastSyncHint = "";
+    try {
+      window.__MOVISAFE_SUPABASE__ = null;
+      delete window.__MOVISAFE_SUPABASE__;
+    } catch {}
+    void updateCloudStatus();
+  }
+
   function renderStatus({ user, hint, authError }) {
     if (!isSupabaseReady()) {
       setStatus("☁️ (não configurado)");
@@ -161,15 +239,17 @@
       return;
     }
 
-    if (isSharedMode()) {
-      const suffix = hint ? ` • ${hint}` : "";
-      setStatus(`☁️ compartilhado${suffix}`);
-      setStatusState("online");
-      return;
-    }
     if (!navigator.onLine) {
       setStatus("☁️ offline");
       setStatusState("offline");
+      return;
+    }
+
+    if (isSharedMode()) {
+      const acc = getSelectedAccount();
+      const suffix = hint ? ` • ${hint}` : "";
+      setStatus(`☁️ ${acc ? `conta: ${acc}` : "selecionar conta"}${suffix}`);
+      setStatusState("online");
       return;
     }
     if (authError) {
@@ -193,7 +273,7 @@
     const cfg = getSupabaseConfig();
     if (!cfg.url || !cfg.anonKey) {
       alert(
-        "Supabase não configurado.\n\nPreencha `js/supabase-config.js` (ou configure no primeiro clique no ☁️) com Project URL e anon public key (Settings → API)."
+        "Supabase não configurado.\n\nPreencha `supabase-config.js` com Project URL e anon public key (Settings → API)."
       );
       return null;
     }
@@ -248,7 +328,7 @@
 
   async function supabaseLogin() {
     if (isSharedMode()) {
-      alert("Modo compartilhado ativo (sem login). Para usar login por usuário, remova ?k=... da URL.");
+      alert("Modo de contas do app ativo (sem Supabase Auth). Use o ☁️ para escolher/trocar a conta.");
       return;
     }
     const client = getClient();
@@ -631,39 +711,21 @@
   window.cloudLoad = cloudLoad;
   window.updateCloudStatus = updateCloudStatus;
   window.setSupabaseConfig = setSupabaseConfig;
-  window.movisafeGetSharedLink = async function () {
-    const cfg = getSyncConfig();
-    if (!cfg.sharedAutoMode) {
-      alert("Modo compartilhado está desativado na configuração.");
-      return null;
-    }
-
-    let key = getSharedKey();
-    if (!key) {
-      key = generateSharedKey();
-      try {
-        localStorage.setItem(SHARED_KEY_STORAGE_KEY, key);
-      } catch {}
-    }
-
-    const link = buildSharedUrl(key);
-    // atualiza a URL sem recarregar
-    try {
-      const url = new URL(link);
-      window.history.replaceState({}, "", url);
-    } catch {}
-
-    const copied = await copyToClipboard(link);
-    if (copied) {
-      alert("🔗 Link compartilhado copiado.\n\nAbra este mesmo link em qualquer computador para carregar/salvar automaticamente.");
-    } else {
-      prompt("Copie o link compartilhado:", link);
-    }
-    return link;
-  };
+  window.movisafeAppLogin = appLogin;
+  window.movisafeAppLogout = appLogout;
 
   document.addEventListener("DOMContentLoaded", async () => {
     const cfg = getSyncConfig();
+
+    if (isSharedMode()) {
+      // Garante que existe uma conta selecionada e que o header x-movisafe-key será enviado.
+      const ready = await ensureAppAccount({ promptIfMissing: false });
+      if (!ready.ok) {
+        setStatus("☁️ selecione conta");
+        setStatusState("error");
+        return;
+      }
+    }
 
     const status = await updateCloudStatus();
     const client = getClient();
@@ -672,7 +734,7 @@
     hookLocalSave();
 
     // Se já tem dados locais, mas não está logado, sugere login para habilitar backup automático.
-    if (cfg.autoSave && cfg.promptLoginIfLocalHasData && isSupabaseReady() && navigator.onLine) {
+    if (!isSharedMode() && cfg.autoSave && cfg.promptLoginIfLocalHasData && isSupabaseReady() && navigator.onLine) {
       try {
         const local = readLocalState();
         if (!status?.user && local?.payload) {
@@ -690,7 +752,7 @@
 
     // Em outra máquina (ou outro navegador), o localStorage vem vazio.
     // Se há Supabase configurado e autoLoad ativo, sugere login para carregar o backup.
-    if (cfg.autoLoad && cfg.promptLoginIfLocalEmpty && isSupabaseReady() && navigator.onLine) {
+    if (!isSharedMode() && cfg.autoLoad && cfg.promptLoginIfLocalEmpty && isSupabaseReady() && navigator.onLine) {
       try {
         const local = readLocalState();
         if (!status?.user && !local?.payload) {
@@ -709,18 +771,27 @@
     const statusEl = getStatusEl();
     if (statusEl && !statusEl.__movisafeBound) {
       statusEl.__movisafeBound = true;
-      statusEl.title =
-        "Clique para entrar/configurar (Supabase). Clique com botão direito para sair.\n\nDica: se o status ficar em “(não configurado)”, configure o Project URL + anon key.";
+      statusEl.title = isSharedMode()
+        ? "Clique para trocar de conta.\nClique com botão direito para sair da conta."
+        : "Clique para entrar/configurar (Supabase). Clique com botão direito para sair.\n\nDica: se o status ficar em “(não configurado)”, configure o Project URL + anon key.";
       statusEl.addEventListener("click", () => {
+        if (isSharedMode()) {
+          void appLogin();
+          return;
+        }
         void supabaseLogin();
       });
       statusEl.addEventListener("contextmenu", (e) => {
         e.preventDefault();
+        if (isSharedMode()) {
+          appLogout();
+          return;
+        }
         void supabaseLogout();
       });
     }
 
-    // Shared mode: sincroniza ao abrir (sem login).
+    // App mode: sincroniza ao abrir.
     if (isSharedMode()) {
       await autoSyncOnLogin();
     } else {
