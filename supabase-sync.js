@@ -109,6 +109,18 @@
   }
 
   async function sha256Base64Url(input) {
+    if (!(globalThis.crypto && crypto.subtle && typeof crypto.subtle.digest === "function")) {
+      // Fallback (ambiente sem SubtleCrypto): hash simples estável (não criptográfico).
+      let h = 2166136261;
+      const s = String(input);
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      // retorna em base36 para ficar curto e URL-safe
+      return `fnv1a_${(h >>> 0).toString(36)}`;
+    }
+
     const enc = new TextEncoder();
     const data = enc.encode(String(input));
     const digest = await crypto.subtle.digest("SHA-256", data);
@@ -827,3 +839,4 @@
     });
   });
 })();
+
