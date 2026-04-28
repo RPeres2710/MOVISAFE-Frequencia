@@ -234,13 +234,13 @@
 
   function renderStatus({ user, hint, authError }) {
     if (!isSupabaseReady()) {
-      setStatus("☁️ (não configurado)");
+      setStatus("(não configurado)");
       setStatusState("not-configured");
       return;
     }
 
     if (!navigator.onLine) {
-      setStatus("☁️ offline");
+      setStatus("offline");
       setStatusState("offline");
       return;
     }
@@ -248,24 +248,24 @@
     if (isSharedMode()) {
       const acc = getSelectedAccount();
       const suffix = hint ? ` • ${hint}` : "";
-      setStatus(`☁️ ${acc ? `conta: ${acc}` : "selecionar conta"}${suffix}`);
+      setStatus(`${acc ? `conta: ${acc}` : "selecionar conta"}${suffix}`);
       setStatusState("online");
       return;
     }
     if (authError) {
-      setStatus("☁️ erro (auth)");
+      setStatus("erro (auth)");
       setStatusState("error");
       return;
     }
     if (!user) {
       const suffix = hint ? ` • ${hint}` : "";
-      setStatus(`☁️ online (clique para entrar)${suffix}`);
+      setStatus(`online (clique para entrar)${suffix}`);
       setStatusState("online");
       return;
     }
     const email = user.email || "logado";
     const suffix = hint ? ` • ${hint}` : "";
-    setStatus(`☁️ ${email}${suffix}`);
+    setStatus(`${email}${suffix}`);
     setStatusState("online");
   }
 
@@ -317,7 +317,7 @@
   async function updateCloudStatus() {
     const client = getClient();
     if (!client) {
-      setStatus("☁️ (não configurado)");
+      setStatus("(não configurado)");
       return null;
     }
     const { user, error } = await getUser(client);
@@ -328,7 +328,7 @@
 
   async function supabaseLogin() {
     if (isSharedMode()) {
-      alert("Modo de contas do app ativo (sem Supabase Auth). Use o ☁️ para escolher/trocar a conta.");
+      alert("Modo de contas do app ativo (sem Supabase Auth). Use o status para escolher/trocar a conta.");
       return;
     }
     const client = getClient();
@@ -721,7 +721,7 @@
       // Garante que existe uma conta selecionada e que o header x-movisafe-key será enviado.
       const ready = await ensureAppAccount({ promptIfMissing: false });
       if (!ready.ok) {
-        setStatus("☁️ selecione conta");
+        setStatus("selecione conta");
         setStatusState("error");
         return;
       }
