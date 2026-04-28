@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOVISAFE - Frequência 2026</title>
     <!-- Cache-busting para GitHub Pages (evita outra máquina ficar com arquivos antigos em cache) -->
-    <meta name="movisafe-build" content="2026-04-27-1">
-    <link rel="icon" href="./favicon.ico?v=2026-04-27-1" sizes="any">
-    <link rel="icon" href="./favicon-32.png?v=2026-04-27-1" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=2026-04-27-1" sizes="180x180">
+    <meta name="movisafe-build" content="2026-04-28-1">
+    <link rel="icon" href="./favicon.ico?v=2026-04-28-1" sizes="any">
+    <link rel="icon" href="./favicon-32.png?v=2026-04-28-1" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=2026-04-28-1" sizes="180x180">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./supabase-config.js?v=2026-04-27-1"></script>
+    <script src="./supabase-config.js?v=2026-04-28-1"></script>
     <script>
         // Permite configurar Supabase sem commitar `js/supabase-config.js` (ex.: via GitHub Pages).
         // Se existir `movisafe_supabase_config` no localStorage, ele é usado automaticamente.
@@ -28,7 +28,17 @@
             } catch {}
         })();
     </script>
-    <script src="./supabase-sync.js?v=2026-04-27-1" defer></script>
+    <script>
+        // "Usuários do app" (sem Supabase Auth).
+        // Edite aqui para ter 2 usuários e 2 senhas como no seu outro projeto.
+        // Importante: como isso roda no front-end, não é um sistema de segurança forte.
+        window.MOVISAFE_APP_ACCOUNTS = {
+            "ROMARIO PERES": "0510",
+            "HEITOR CUNHA": "1402"
+        };
+        window.MOVISAFE_APP_DEFAULT_ACCOUNT = "MOVISAFE1";
+    </script>
+    <script src="./supabase-sync.js?v=2026-04-28-1" defer></script>
     <style>
         * {
             margin: 0;
@@ -559,7 +569,7 @@
             <button class="btn btn-secondary" id="lockMonthBtn" onclick="toggleMonthLock()">🔒 Bloquear Mês</button>
             <button class="btn btn-secondary" onclick="cloudSave && cloudSave()">☁️ Salvar na Nuvem</button>
             <button class="btn btn-secondary" onclick="cloudLoad && cloudLoad()">☁️ Puxar da Nuvem</button>
-            <button class="btn btn-secondary" onclick="movisafeGetSharedLink && movisafeGetSharedLink()">🔗 Link</button>
+            <button class="btn btn-secondary" onclick="movisafeAppLogin && movisafeAppLogin()">👤 Conta</button>
             <span id="cloudStatus" class="cloud-status"></span>
         </div>
 
@@ -1673,5 +1683,6 @@
     </script>
 </body>
 </html>
+
 
 
