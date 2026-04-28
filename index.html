@@ -578,7 +578,7 @@
             <button class="btn btn-secondary" onclick="clearMonth()">🗑️ Limpar Mês</button>
             <button class="btn btn-secondary" onclick="clearAllData()">🗑️ Limpar Dados Salvos</button>
             <button class="btn btn-secondary" id="lockMonthBtn" onclick="toggleMonthLock()">🔒 Bloquear Mês</button>
-            <button class="btn btn-success" onclick="cloudSave && cloudSave()">Salvar</button>
+            <button class="btn btn-success" onclick="cloudSave && cloudSave()">☁️ Salvar</button>
             <button class="btn btn-secondary" onclick="movisafeAppLogin && movisafeAppLogin()">👤 Conta</button>
             <span id="cloudStatus" class="cloud-status"></span>
         </div>
@@ -675,11 +675,11 @@
                 if (!el) return;
 
                 if (navigator.onLine) {
-                    el.textContent = 'ONLINE';
+                    el.textContent = '☁️ ONLINE';
                     el.classList.add('status-online');
                     el.classList.remove('status-offline');
                 } else {
-                    el.textContent = 'OFFLINE';
+                    el.textContent = '☁️ OFFLINE';
                     el.classList.add('status-offline');
                     el.classList.remove('status-online');
                 }
@@ -738,8 +738,4 @@
             const locked = isMonthLocked(monthKey);
 
             if (locked) {
-                const pass = (prompt('Senha para desbloquear o mês:') || '').trim();
-                if (pass !== LOCK_PASSWORD) {
-                    alert('❌ Senha incorreta.');
-                    return;
-     
+                const pass = (prompt('Senha para desbloquear o mês:')
