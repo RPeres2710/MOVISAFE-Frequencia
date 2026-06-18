@@ -463,10 +463,10 @@
         .selector-option.D { color: #4CAF50; }
         .selector-option.N { color: #2196F3; }
         .selector-option.B { color: #FF9800; }
-        .selector-option.F { color: #9C27B0; }
+        .selector-option.FE { color: #9C27B0; }
         .selector-option.M { color: #E91E63; }
-        .selector-option.FE { color: #00BCD4; }
-        .selector-option.FN { color: #F44336; }
+        .selector-option.FR { color: #00BCD4; }
+        .selector-option.FT { color: #F44336; }
         .selector-option.clear { color: #F44336; }
 
         .day-cell.D { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
@@ -474,8 +474,9 @@
         .day-cell.B { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
         .day-cell.F { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
         .day-cell.M { background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%); color: white; }
-        .day-cell.FE { background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); color: white; }
-        .day-cell.FN { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white; }
+        .day-cell.FE { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; }
+        .day-cell.FR { background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); color: white; }
+        .day-cell.FT { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white; }
 
         .weekend {
             background: linear-gradient(135deg, #ffcccc 0%, #ff9999 100%) !important;
@@ -620,7 +621,7 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);"></div>
-                        <span>F - Férias</span>
+                        <span>FE - Férias</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);"></div>
@@ -628,7 +629,11 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);"></div>
-                        <span>FE - Feriado</span>
+                        <span>FR - Feriado</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);"></div>
+                        <span>FT - Falta</span>
                     </div>
                 </div>
 
@@ -650,10 +655,10 @@
         <div class="selector-option D" onclick="setCellValue('D')">D - Diurno</div>
         <div class="selector-option N" onclick="setCellValue('N')">N - Noturno</div>
         <div class="selector-option B" onclick="setCellValue('B')">B - Backup</div>
-        <div class="selector-option F" onclick="setCellValue('F')">F - Férias</div>
+        <div class="selector-option FE" onclick="setCellValue('FE')">FE - Férias</div>
         <div class="selector-option M" onclick="setCellValue('M')">M - Médico</div>
-        <div class="selector-option FE" onclick="setCellValue('FE')">FE - Feriado</div>
-        <div class="selector-option FN" onclick="setCellValue('FN')">FN - Falta</div>
+        <div class="selector-option FR" onclick="setCellValue('FR')">FR - Feriado</div>
+        <div class="selector-option FT" onclick="setCellValue('FT')">FT - Falta</div>
         <div class="selector-option clear" onclick="setCellValue('')">Limpar</div>
     </div>
 
@@ -689,18 +694,18 @@
             window.addEventListener('offline', setCloudStatusBasic);
         })();
 
-        // LISTA ATUALIZADA DE OPERADORES - Carol Mury removida, Lorhane Ribeiro e Wellington Fraga adicionados
-        const operators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha', 'Lais Ril', 'Lorhane Ribeiro', 'Luis Butter', 'Wellington Fraga'];
+        // LISTA ATUALIZADA DE OPERADORES
+        const operators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha', 'Andrey Viana', 'Lorhane Ribeiro', 'Luis Butter', 'Carlos Ribeiro'];
         
         // CONFIGURAÇÃO DE SALÁRIOS
         const SALARIES = {
-            'Josniel Rodriguez': 1919.14,
-            'Leticia Pinheiro': 1919.14,
-            'Heitor Cunha': 2096.00,
-            'Lais Ril': 1919.14,
-            'Lorhane Ribeiro': 1919.14,
+            'Josniel Rodriguez': 2100.00,
+            'Bruno Sousa': 2100.00,
+            'Heitor Cunha': 2100.00,
+            'Andrey Viana': 2000.00,
+            'Lorhane Ribeiro': 2100.00,
             'Luis Butter': 2453.89,
-            'Wellington Fraga': 1919.14
+            'Carlos Ribeiro': 2000.00
         };
 
         // GRATIFICAÇÃO POR TEMPO DE SERVIÇO (ANUÊNIO)
@@ -714,12 +719,12 @@
         // Ajuste aqui os anos por operador (Wellington e Lorhane ainda não têm 1 ano).
         const ANUENIO_YEARS = {
             'Josniel Rodriguez': 1,
-            'Leticia Pinheiro': 1,
+            'Bruno Sousa': 1,
             'Heitor Cunha': 1,
-            'Lais Ril': 1,
+            'Andrey Viana': 1,
             'Lorhane Ribeiro': 0,
             'Luis Butter': 1,
-            'Wellington Fraga': 0
+            'Carlos Ribeiro': 0
         };
 
         function calculateAnuenio(baseSalary, operator) {
@@ -823,7 +828,7 @@
         }
 
         function calculateOvertimeValue(operator, totalShifts, he50Units, he100Units) {
-    const baseSalary = SALARIES[operator] || 1919.14;
+    const baseSalary = SALARIES[operator] || 2100.00;
 
     let divisor;
 
@@ -993,17 +998,17 @@
                     <li><strong>Diurno (revezamento diário):</strong></li>
                     <ul>
                         <li>Dias Ímpares: Josniel Rodriguez</li>
-                        <li>Dias Pares: Leticia Pinheiro</li>
+                        <li>Dias Pares: Bruno Sousa</li>
                     </ul>
                     <li><strong>Noturno (revezamento de duplas):</strong></li>
                     <ul>
-                        <li>Plantão 1: Lais Ril + Lorhane Ribeiro</li>
-                        <li>Plantão 2: Luis Butter + Wellington Fraga</li>
+                        <li>Plantão 1: Andrey Viana + Lorhane Ribeiro</li>
+                        <li>Plantão 2: Luis Butter + Carlos Ribeiro</li>
                         <li><em>(Duplas alternam dia sim, dia não)</em></li>
                     </ul>
                     <li><strong>Backup Diário:</strong> Heitor Cunha</li>
                     <li><strong>Adicional Noturno:</strong> R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h) - Hora reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min</li>
-                    <li><strong>Férias:</strong> Utilize a opção "F" para marcar dias de férias</li>
+                    <li><strong>Férias:</strong> Utilize a opção "FE" para marcar dias de férias</li>
                 </ul>
             `;
         }
@@ -1084,7 +1089,7 @@
             const [operator, day] = currentCellId.split('-');
             cell.textContent = value;
             // Remove todas as classes possíveis antes de adicionar a nova
-            cell.className = cell.className.replace(/\s(D|N|B|F|M|FE|FN)\b/g, '');
+            cell.className = cell.className.replace(/\s(D|N|B|F|M|FE|FR|FT|FN)\b/g, '');
             if (value) cell.classList.add(value);
             
             const scheduleData = getCurrentMonthData();
@@ -1104,19 +1109,21 @@
             const selectedMonth = getSelectedMonthKey();
             const locked = isMonthLocked(selectedMonth);
             const scheduleData = getCurrentMonthData();
-            const dayOperators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha'];
+            const dayOperators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha'];
 
             operators.forEach(operator => {
-                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0, FN: 0 };
+                const totals = { D: 0, N: 0, B: 0, F: 0, FE: 0, FR: 0, FT: 0, FN: 0, M: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => {
                     if (totals.hasOwnProperty(value)) totals[value]++;
                 });
                 
                 const totalPlantoes = totals.D + totals.N + totals.B;
                 const isDay = dayOperators.includes(operator);
-                const feCount = totals.FE;
-                const extraHe100Units = isDay ? feCount : 0;
-                const extraHe50Units = isDay ? 0 : feCount;
+                const holidayCount = totals.FR;
+                const vacationCount = totals.FE + totals.F;
+                const absenceCount = totals.FT + totals.FN;
+                const extraHe100Units = isDay ? holidayCount : 0;
+                const extraHe50Units = isDay ? 0 : holidayCount;
                 const manualHe100 = getOvertime(operator, 'he100');
                 const manualHe50 = getOvertime(operator, 'he50');
                 const totalHe100Units = manualHe100 + extraHe100Units;
@@ -1126,9 +1133,8 @@
                 const anuenio = calculateAnuenio(overtimeCalc.baseSalary, operator);
                 
                 // Calcular desconto por faltas não abonadas
-                const fnCount = totals.FN;
                 const shiftValue = (overtimeCalc.baseSalary / overtimeCalc.divisor) * 12;
-                const discount = fnCount * shiftValue;
+                const discount = absenceCount * shiftValue;
                 
                 // Calcular total mensal
                 const totalMensal = overtimeCalc.baseSalary + anuenio.value + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue - discount;
@@ -1141,10 +1147,10 @@
                         <div class="summary-item"><span>Plantões Diurnos:</span><span class="summary-value">${totals.D}</span></div>
                         <div class="summary-item"><span>Plantões Noturnos:</span><span class="summary-value">${totals.N}</span></div>
                         <div class="summary-item"><span>Backups:</span><span class="summary-value">${totals.B}</span></div>
-                        <div class="summary-item"><span>Férias:</span><span class="summary-value">${totals.F}</span></div>
+                        <div class="summary-item"><span>Férias:</span><span class="summary-value">${vacationCount}</span></div>
                         <div class="summary-item"><span>Médico:</span><span class="summary-value">${totals.M}</span></div>
-                        <div class="summary-item"><span>Feriado:</span><span class="summary-value">${totals.FE}</span></div>
-                        <div class="summary-item"><span>Falta:</span><span class="summary-value">${totals.FN}</span></div>
+                        <div class="summary-item"><span>Feriado:</span><span class="summary-value">${holidayCount}</span></div>
+                        <div class="summary-item"><span>Falta:</span><span class="summary-value">${absenceCount}</span></div>
                         <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
                         <div class="summary-item"><span>Salário Base:</span><span class="summary-value money">R$ ${overtimeCalc.baseSalary.toFixed(2)}</span></div>
                         <div class="summary-item"><span>Anuênio:</span><span class="summary-value money">R$ ${anuenio.value.toFixed(2)}</span></div>
@@ -1154,7 +1160,7 @@
                 `;
 
                 // Adicionar seção de horas extras se houver
-                if (totalHe50Units > 0 || totalHe100Units > 0 || feCount > 0) {
+                if (totalHe50Units > 0 || totalHe100Units > 0 || holidayCount > 0) {
                     const overtimeDiv = document.createElement('div');
                     overtimeDiv.className = 'night-allowance-section';
                     overtimeDiv.style.background = 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)';
@@ -1162,10 +1168,10 @@
                     overtimeDiv.innerHTML = `
                         <h4>⏰ Horas Extras</h4>
                         <div class="night-calculation">
-                            ${feCount > 0 ? `
+                            ${holidayCount > 0 ? `
                             <div class="summary-item">
-                                <span>Extras por Feriado (${feCount}):</span>
-                                <span class="summary-value">${isDay ? `${feCount} un. 100%` : `${feCount} un. 50%`}</span>
+                                <span>Extras por Feriado (${holidayCount}):</span>
+                                <span class="summary-value">${isDay ? `${holidayCount} un. 100%` : `${holidayCount} un. 50%`}</span>
                             </div>
                             ` : ''}
                             ${totalHe50Units > 0 ? `
@@ -1196,7 +1202,7 @@
                 }
 
                 // Adicionar desconto por faltas se houver
-                if (fnCount > 0) {
+                if (absenceCount > 0) {
                     const discountDiv = document.createElement('div');
                     discountDiv.className = 'night-allowance-section';
                     discountDiv.style.background = 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)';
@@ -1206,7 +1212,7 @@
                         <div class="night-calculation">
                             <div class="summary-item">
                                 <span>Faltas Não Abonadas:</span>
-                                <span class="summary-value">${fnCount}</span>
+                                <span class="summary-value">${absenceCount}</span>
                             </div>
                             <div class="summary-item">
                                 <span>Valor por Plantão:</span>
@@ -1217,7 +1223,7 @@
                                 <span class="summary-value money"><strong>R$ ${discount.toFixed(2)}</strong></span>
                             </div>
                             <div class="calculation-detail">
-                                ${fnCount} faltas × R$ ${shiftValue.toFixed(2)} (Salário Base ÷ ${overtimeCalc.divisor}h × 12h)
+                                ${absenceCount} faltas × R$ ${shiftValue.toFixed(2)} (Salário Base ÷ ${overtimeCalc.divisor}h × 12h)
                             </div>
                         </div>
                     `;
@@ -1282,7 +1288,7 @@
                             <span>Horas Extras:</span>
                             <span class="summary-value money">R$ ${overtimeCalc.totalOvertimeValue.toFixed(2)}</span>
                         </div>
-                        ${fnCount > 0 ? `
+                        ${absenceCount > 0 ? `
                         <div class="summary-item">
                             <span>Descontos (Faltas):</span>
                             <span class="summary-value money" style="color: #F44336;">-R$ ${discount.toFixed(2)}</span>
@@ -1335,30 +1341,30 @@
                     if (!scheduleData[op]) scheduleData[op] = {};
                 });
                 
-                // DIURNO: Josniel (dias ímpares da sequência) e Letícia (dias pares)
+                // DIURNO: Josniel (dias ímpares da sequência) e Bruno (dias pares)
                 if (isOddDay) {
                     scheduleData['Josniel Rodriguez'][day] = 'D';
-                    scheduleData['Leticia Pinheiro'][day] = '';
+                    scheduleData['Bruno Sousa'][day] = '';
                 } else {
-                    scheduleData['Leticia Pinheiro'][day] = 'D';
+                    scheduleData['Bruno Sousa'][day] = 'D';
                     scheduleData['Josniel Rodriguez'][day] = '';
                 }
 
                 // NOTURNO: Duplas alternam na sequência contínua
                 if (isOddDay) {
-                    scheduleData['Lais Ril'][day] = 'N';
+                    scheduleData['Andrey Viana'][day] = 'N';
                     scheduleData['Lorhane Ribeiro'][day] = 'N';
                     scheduleData['Luis Butter'][day] = '';
-                    scheduleData['Wellington Fraga'][day] = '';
+                    scheduleData['Carlos Ribeiro'][day] = '';
                 } else {
                     scheduleData['Luis Butter'][day] = 'N';
-                    scheduleData['Wellington Fraga'][day] = 'N';
-                    scheduleData['Lais Ril'][day] = '';
+                    scheduleData['Carlos Ribeiro'][day] = 'N';
+                    scheduleData['Andrey Viana'][day] = '';
                     scheduleData['Lorhane Ribeiro'][day] = '';
                 }
 
-                // BACKUP DIÁRIO: Heitor Cunha todos os dias
-                scheduleData['Heitor Cunha'][day] = 'B';
+                // BACKUP DIÁRIO: Heitor Cunha apenas nos dias úteis (não contempla sábados e domingos)
+                scheduleData['Heitor Cunha'][day] = isWeekend(year, month, day) ? '' : 'B';
             }
 
             updateCalendarDisplay();
@@ -1366,7 +1372,7 @@
             autoSave();
             
             const monthName = getMonthName(month);
-            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Lais+Lorhane à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Letícia\n• Noturno: Duplas alternam (Lais+Lorhane / Luis+Wellington)\n• Backup Diário: Heitor Cunha`);
+            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Andrey+Lorhane à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Bruno\n• Noturno: Duplas alternam (Andrey+Lorhane / Luis+Carlos)\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
@@ -1384,7 +1390,7 @@
                         const value = scheduleData[operator]?.[day] || '';
                         cell.textContent = value;
                         // Remove todas as classes possíveis
-                        cell.className = cell.className.replace(/\s(D|N|B|F|M|FE|FN)\b/g, '');
+                        cell.className = cell.className.replace(/\s(D|N|B|F|M|FE|FR|FT|FN)\b/g, '');
                         if (value) cell.classList.add(value);
                         if (isWeekend(year, month, day) && !cell.classList.contains('weekend')) {
                             cell.classList.add('weekend');
@@ -1477,10 +1483,10 @@
 
             doc.text(`• Diurno (revezamento diário):`, margin + 5, yPos);
             doc.text(`  - Dias ímpares: Josniel Rodriguez`, margin + 5, yPos + 5);
-            doc.text(`  - Dias pares: Leticia Pinheiro`, margin + 5, yPos + 10);
+            doc.text(`  - Dias pares: Bruno Sousa`, margin + 5, yPos + 10);
             doc.text(`• Noturno (duplas alternam dia sim, dia não):`, margin + 5, yPos + 15);
-            doc.text(`  - Plantão 1: Lais Ril + Lorhane Ribeiro`, margin + 5, yPos + 20);
-            doc.text(`  - Plantão 2: Luis Butter + Wellington Fraga`, margin + 5, yPos + 25);
+            doc.text(`  - Plantão 1: Andrey Viana + Lorhane Ribeiro`, margin + 5, yPos + 20);
+            doc.text(`  - Plantão 2: Luis Butter + Carlos Ribeiro`, margin + 5, yPos + 25);
             doc.text(`• Backup Diário: Heitor Cunha`, margin + 5, yPos + 30);
             doc.text(`• Adicional Noturno: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h)`, margin + 5, yPos + 35);
             yPos += 45;
@@ -1492,7 +1498,7 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(50, 50, 50);
-            doc.text('D = Diurno    N = Noturno    B = Backup    F = Férias    M = Médico    FE = Feriado    FN = Falta', margin + 25, yPos);
+            doc.text('D = Diurno    N = Noturno    B = Backup    FE = Férias    M = Médico    FR = Feriado    FT = Falta', margin + 25, yPos);
             yPos += 15;
 
             const maxDaysPerTable = 16;
@@ -1553,16 +1559,18 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'F', 'M', 'FE', 'FN', 'Total Plantões', 'Salário Base', 'Anuênio', 'Horas Extras', 'Adic. Noturno', 'Descontos', 'TOTAL'];
-            const dayOperators = ['Josniel Rodriguez', 'Leticia Pinheiro', 'Heitor Cunha'];
+            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'FE', 'M', 'FR', 'FT', 'Total Plantões', 'Salário Base', 'Anuênio', 'Horas Extras', 'Adic. Noturno', 'Descontos', 'TOTAL'];
+            const dayOperators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha'];
             const summaryData = operators.map(operator => {
-                const totals = { D: 0, N: 0, B: 0, F: 0, M: 0, FE: 0, FN: 0 };
+                const totals = { D: 0, N: 0, B: 0, F: 0, FE: 0, FR: 0, FT: 0, FN: 0, M: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => { if (totals.hasOwnProperty(value)) totals[value]++; });
                 const totalPlantoes = totals.D + totals.N + totals.B;
                 const isDay = dayOperators.includes(operator);
-                const feCount = totals.FE;
-                const extraHe100Units = isDay ? feCount : 0;
-                const extraHe50Units = isDay ? 0 : feCount;
+                const holidayCount = totals.FR;
+                const vacationCount = totals.FE + totals.F;
+                const absenceCount = totals.FT + totals.FN;
+                const extraHe100Units = isDay ? holidayCount : 0;
+                const extraHe50Units = isDay ? 0 : holidayCount;
                 const manualHe100 = getOvertime(operator, 'he100');
                 const manualHe50 = getOvertime(operator, 'he50');
                 const totalHe100Units = manualHe100 + extraHe100Units;
@@ -1570,25 +1578,24 @@
                 const nightAllowance = calculateNightAllowance(totals.N);
                 const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, totalHe50Units, totalHe100Units);
                 const anuenio = calculateAnuenio(overtimeCalc.baseSalary, operator);
-                const fnCount = totals.FN;
                 const shiftValue = (overtimeCalc.baseSalary / overtimeCalc.divisor) * 12;
-                const discount = fnCount * shiftValue;
+                const discount = absenceCount * shiftValue;
                 const totalMensal = overtimeCalc.baseSalary + anuenio.value + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue - discount;
                 return [
                     operator, 
                     totals.D.toString(), 
                     totals.N.toString(), 
                     totals.B.toString(), 
-                    totals.F.toString(),
+                    vacationCount.toString(),
                     totals.M.toString(),
-                    totals.FE.toString(),
-                    totals.FN.toString(),
+                    holidayCount.toString(),
+                    absenceCount.toString(),
                     totalPlantoes.toString(),
                     'R$ ' + overtimeCalc.baseSalary.toFixed(2),
                     'R$ ' + anuenio.value.toFixed(2),
                     'R$ ' + overtimeCalc.totalOvertimeValue.toFixed(2),
                     'R$ ' + nightAllowance.totalValue.toFixed(2),
-                    fnCount > 0 ? 'R$ ' + discount.toFixed(2) : '',
+                    absenceCount > 0 ? 'R$ ' + discount.toFixed(2) : '',
                     'R$ ' + totalMensal.toFixed(2)
                 ];
             });
@@ -1626,8 +1633,8 @@
             doc.setTextColor(50, 50, 50);
             doc.text(`• Cada unidade de H.E. 100% equivale a 12 horas`, margin + 5, yPos);
             doc.text(`• Cada unidade de H.E. 50% equivale a 6 horas`, margin + 5, yPos + 5);
-            doc.text(`• Feriados (FE) adicionam 1 unidade extra (100% diurno, 50% noturno)`, margin + 5, yPos + 10);
-            doc.text(`• Faltas não abonadas (FN) descontam o valor proporcional do plantão`, margin + 5, yPos + 15);
+            doc.text(`• Feriados (FR) adicionam 1 unidade extra (100% diurno, 50% noturno)`, margin + 5, yPos + 10);
+            doc.text(`• Faltas não abonadas (FT) descontam o valor proporcional do plantão`, margin + 5, yPos + 15);
             doc.text(`• Hora Extra 50%: (Salário Base ÷ Horas Trabalhadas) × 1,5`, margin + 5, yPos + 20);
             doc.text(`• Hora Extra 100%: (Salário Base ÷ Horas Trabalhadas) × 2,0`, margin + 5, yPos + 25);
             yPos += 35;
@@ -1731,5 +1738,4 @@
     </script>
 </body>
 </html>
-
 
