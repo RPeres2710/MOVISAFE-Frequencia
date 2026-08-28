@@ -34,6 +34,7 @@
         // Importante: como isso roda no front-end, não é um sistema de segurança forte.
         window.MOVISAFE_APP_ACCOUNTS = {
             "ROMARIO PERES": "0510",
+            "BÁRBARA": "2102",
             "HEITOR CUNHA": "1402"
         };
         window.MOVISAFE_APP_DEFAULT_ACCOUNT = "ROMARIO PERES";
@@ -565,9 +566,139 @@
             th, td { padding: 6px 3px; font-size: 11px; }
             .day-cell { min-width: 35px; font-size: 12px; }
         }
+
+        /* ===== Login (sem backend) + auditoria ===== */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+        .login-overlay[hidden] { display: none; }
+
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .login-card h2 {
+            color: #1e3c72;
+            font-size: 1.3em;
+            margin-bottom: 4px;
+        }
+
+        .login-card p.login-sub {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .login-card label {
+            display: block;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 14px;
+        }
+
+        .login-card select,
+        .login-card input {
+            width: 100%;
+            margin-top: 5px;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            background: white;
+        }
+
+        .login-card select:focus,
+        .login-card input:focus {
+            outline: none;
+            border-color: #1e3c72;
+        }
+
+        .login-card .btn { width: 100%; margin-top: 6px; }
+
+        .login-error {
+            color: #c0392b;
+            font-size: 13px;
+            font-weight: 600;
+            min-height: 18px;
+            margin-top: 10px;
+        }
+
+        .login-note {
+            color: #999;
+            font-size: 11px;
+            margin-top: 14px;
+            line-height: 1.4;
+        }
+
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+        }
+
+        .user-chip::before {
+            content: '👤';
+            font-size: 14px;
+        }
+
+        .user-chip[hidden] { display: none; }
+
+        .audit-info {
+            margin: 0 auto 16px;
+            max-width: 640px;
+            text-align: center;
+            font-size: 13px;
+            color: #555;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+        }
+
+        .audit-info strong { color: #1e3c72; }
+        .audit-info:empty { display: none; }
     </style>
 </head>
 <body>
+    <div id="loginOverlay" class="login-overlay" hidden>
+        <form id="loginForm" class="login-card" autocomplete="off">
+            <h2>MOVISAFE - Frequência 2026</h2>
+            <p class="login-sub">Identifique-se para acessar o sistema</p>
+            <label>Nome
+                <select id="loginName"></select>
+            </label>
+            <label>Senha
+                <input type="password" id="loginPass" inputmode="numeric" autocomplete="off" placeholder="••••">
+            </label>
+            <button type="submit" class="btn btn-primary">Entrar</button>
+            <p id="loginError" class="login-error"></p>
+            <p class="login-note">Controle local (sem servidor). Serve apenas para registrar quem alterou a escala.</p>
+        </form>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>MOVISAFE - Frequência 2026</h1>
@@ -581,6 +712,8 @@
             <button class="btn btn-secondary" id="lockMonthBtn" onclick="toggleMonthLock()">🔒 Bloquear Mês</button>
             <button class="btn btn-success" onclick="cloudSave && cloudSave()">Salvar</button>
             <span id="cloudStatus" class="cloud-status"></span>
+            <span id="currentUserChip" class="user-chip" hidden></span>
+            <button class="btn btn-secondary" onclick="authLogout()">🔁 Trocar usuário</button>
         </div>
 
         <div class="main-content">
@@ -603,6 +736,8 @@
                         <option value="2026-12">Dezembro 2026</option>
                     </select>
                 </div>
+
+                <div class="audit-info" id="auditInfo"></div>
 
                 <div class="scale-info" id="scaleInfo"></div>
 
@@ -718,7 +853,158 @@
         let lockedMonths = {};
         let currentCellId = null;
 
+        // Auditoria: quem alterou por último (geral e por mês)
+        let lastModified = { by: null, at: null };
+        let monthEdits = {};
+
         const LOCK_PASSWORD = '051019';
+
+        // ===== Login local (sem backend) =====
+        // Fonte de usuários/senhas: window.MOVISAFE_APP_ACCOUNTS (definido no <head>).
+        // O nome do usuário logado fica em localStorage sob a mesma chave usada
+        // pelo supabase-sync.js ("movisafe_app_account"), para compatibilidade.
+        const CURRENT_USER_KEY = 'movisafe_app_account';
+
+        function getAccounts() {
+            return window.MOVISAFE_APP_ACCOUNTS || {};
+        }
+
+        function displayName(raw) {
+            if (!raw) return '';
+            return String(raw).toLowerCase().replace(/(^|[\s'-])([\p{L}])/gu, (m, sep, ch) => sep + ch.toUpperCase());
+        }
+
+        function getCurrentUser() {
+            try {
+                const raw = (localStorage.getItem(CURRENT_USER_KEY) || '').trim();
+                if (!raw) return null;
+                // Só aceita se ainda for uma conta válida
+                const match = Object.keys(getAccounts()).find(k => k.toUpperCase() === raw.toUpperCase());
+                return match || null;
+            } catch {
+                return null;
+            }
+        }
+
+        function setCurrentUser(name) {
+            try { localStorage.setItem(CURRENT_USER_KEY, name); } catch {}
+        }
+
+        function updateCurrentUserChip() {
+            const chip = document.getElementById('currentUserChip');
+            if (!chip) return;
+            const user = getCurrentUser();
+            if (user) {
+                chip.textContent = displayName(user);
+                chip.hidden = false;
+            } else {
+                chip.hidden = true;
+            }
+        }
+
+        function populateLoginNames() {
+            const select = document.getElementById('loginName');
+            if (!select) return;
+            const keys = Object.keys(getAccounts());
+            select.innerHTML = keys.map(k => `<option value="${k}">${displayName(k)}</option>`).join('');
+            const def = window.MOVISAFE_APP_DEFAULT_ACCOUNT;
+            if (def && keys.includes(def)) select.value = def;
+        }
+
+        function showLogin() {
+            const overlay = document.getElementById('loginOverlay');
+            if (!overlay) return;
+            populateLoginNames();
+            overlay.hidden = false;
+            const pass = document.getElementById('loginPass');
+            if (pass) { pass.value = ''; setTimeout(() => pass.focus(), 50); }
+        }
+
+        function hideLogin() {
+            const overlay = document.getElementById('loginOverlay');
+            if (overlay) overlay.hidden = true;
+        }
+
+        function doLogin(event) {
+            if (event) event.preventDefault();
+            const name = (document.getElementById('loginName').value || '').trim();
+            const pass = (document.getElementById('loginPass').value || '').trim();
+            const errEl = document.getElementById('loginError');
+            const expected = getAccounts()[name];
+
+            if (expected === undefined) {
+                errEl.textContent = 'Usuário inválido.';
+                return false;
+            }
+            if (String(pass) !== String(expected)) {
+                errEl.textContent = 'Senha incorreta.';
+                return false;
+            }
+
+            errEl.textContent = '';
+            setCurrentUser(name);
+            hideLogin();
+            updateCurrentUserChip();
+
+            try {
+                loadFromLocalStorage();
+                updateCalendar();
+            } catch (e) {
+                console.error('Erro ao iniciar após login:', e);
+            }
+            return false;
+        }
+
+        function authLogout() {
+            if (!confirm('Sair / trocar de usuário?')) return;
+            try { localStorage.removeItem(CURRENT_USER_KEY); } catch {}
+            updateCurrentUserChip();
+            showLogin();
+        }
+
+        // Retorna true se já há usuário logado; senão exibe a tela de login.
+        function authInit() {
+            populateLoginNames();
+            updateCurrentUserChip();
+            const form = document.getElementById('loginForm');
+            if (form && !form.dataset.bound) {
+                form.addEventListener('submit', doLogin);
+                form.dataset.bound = '1';
+            }
+            if (getCurrentUser()) {
+                hideLogin();
+                return true;
+            }
+            showLogin();
+            return false;
+        }
+
+        // Atualiza o texto "quem alterou por último" (mês selecionado + geral)
+        function updateAuditInfo() {
+            const el = document.getElementById('auditInfo');
+            if (!el) return;
+
+            const fmt = (iso) => {
+                const d = iso ? new Date(iso) : null;
+                return d && !isNaN(d) ? d.toLocaleString('pt-BR') : '—';
+            };
+
+            const monthKey = getSelectedMonthKey();
+            const [y, m] = monthKey.split('-').map(Number);
+            const monthLabel = `${getMonthName(m)} ${y}`;
+            const me = monthEdits[monthKey];
+
+            let html = '';
+            if (me && me.by) {
+                html += `📝 <strong>${monthLabel}</strong>: última alteração por <strong>${displayName(me.by)}</strong> em ${fmt(me.at)}`;
+            } else {
+                html += `📝 <strong>${monthLabel}</strong>: sem alterações registradas`;
+            }
+            if (lastModified && lastModified.by) {
+                html += ` &nbsp;·&nbsp; Geral: <strong>${displayName(lastModified.by)}</strong> em ${fmt(lastModified.at)}`;
+            }
+            el.innerHTML = html;
+        }
 
         function getSelectedMonthKey() {
             return document.getElementById('monthSelect').value;
@@ -811,19 +1097,33 @@
             };
         }
 
-        function saveToLocalStorage() {
+        function saveToLocalStorage(options) {
             try {
                 const selectedMonth = document.getElementById('monthSelect').value;
-                
+
+                // Registra quem alterou (só quando a gravação vem de uma edição do usuário)
+                const isUserEdit = !options || options.userEdit !== false;
+                if (isUserEdit) {
+                    const now = new Date().toISOString();
+                    const by = getCurrentUser();
+                    lastModified = { by: by, at: now };
+                    monthEdits[selectedMonth] = { by: by, at: now };
+                }
+
                 const dataToSave = {
                     allScheduleData: allScheduleData,
                     overtimeData: overtimeData,
                     lockedMonths: lockedMonths,
+                    monthEdits: monthEdits,
+                    lastModifiedBy: lastModified.by,
+                    lastModifiedAt: lastModified.at,
                     lastSelectedMonth: selectedMonth,
                     lastSaved: new Date().toISOString()
                 };
-                
+
                 localStorage.setItem('movisafe_data_2026', JSON.stringify(dataToSave));
+
+                if (isUserEdit) updateAuditInfo();
             } catch (error) {
                 console.error('Erro ao salvar:', error);
             }
@@ -837,7 +1137,12 @@
                     allScheduleData = data.allScheduleData || {};
                     overtimeData = data.overtimeData || {};
                     lockedMonths = data.lockedMonths || {};
-                    
+                    monthEdits = data.monthEdits || {};
+                    lastModified = {
+                        by: data.lastModifiedBy || null,
+                        at: data.lastModifiedAt || null
+                    };
+
                     if (data.lastSelectedMonth) {
                         document.getElementById('monthSelect').value = data.lastSelectedMonth;
                     }
@@ -856,6 +1161,8 @@
         function clearLocalStorage() {
             localStorage.removeItem('movisafe_data_2026');
             lockedMonths = {};
+            monthEdits = {};
+            lastModified = { by: null, at: null };
         }
 
         function autoSave() {
@@ -1004,6 +1311,7 @@
             updateCalendarDisplay();
             updateDashboard();
             updateLockUI();
+            updateAuditInfo();
             document.querySelector('.loading-message').style.display = 'none';
         }
 
@@ -1405,6 +1713,7 @@
                 doc.setFontSize(10);
                 doc.setTextColor(100, 100, 100);
                 doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth - margin - 50, 25);
+                doc.text(`Por: ${displayName(getCurrentUser()) || '—'}`, pageWidth - margin - 50, 31);
                 doc.setDrawColor(30, 60, 114);
                 doc.setLineWidth(0.5);
                 doc.line(margin, 50, pageWidth - margin, 50);
@@ -1430,7 +1739,17 @@
             doc.text(`  - Plantão 2: Ágatha de Sousa + Carlos Ribeiro`, margin + 5, yPos + 25);
             doc.text(`• Backup Diário: Heitor Cunha`, margin + 5, yPos + 30);
             doc.text(`• Adicional Noturno: 22h às 5h`, margin + 5, yPos + 35);
-            yPos += 45;
+            yPos += 42;
+
+            (function () {
+                const me = monthEdits[selectedMonth];
+                const txt = me && me.by
+                    ? `Última alteração desta escala: ${displayName(me.by)} em ${me.at ? new Date(me.at).toLocaleString('pt-BR') : '—'}`
+                    : 'Última alteração desta escala: sem registro';
+                doc.setTextColor(120, 120, 120);
+                doc.text(`• ${txt}`, margin + 5, yPos);
+            })();
+            yPos += 8;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
@@ -1654,7 +1973,11 @@
 
         try {
             const dataLoaded = loadFromLocalStorage();
-            updateCalendar();
+            // Só monta a tela se já houver usuário identificado.
+            // Caso contrário, a tela de login aparece e o app é montado após o login.
+            if (authInit()) {
+                updateCalendar();
+            }
         } catch (error) {
             console.error('Erro ao inicializar:', error);
             alert('Erro ao inicializar a aplicação.');
