@@ -695,49 +695,23 @@
         })();
 
         // LISTA ATUALIZADA DE OPERADORES
-        const operators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha', 'Andrey Viana', 'Lorhane Ribeiro', 'Luis Butter', 'Carlos Ribeiro'];
+        const operators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha', 'Andrey Viana', 'Lucas Rodrigues', 'Ágatha de Sousa', 'Carlos Ribeiro'];
         
-        // CONFIGURAÇÃO DE SALÁRIOS
-        const SALARIES = {
-            'Josniel Rodriguez': 2100.00,
-            'Bruno Sousa': 2100.00,
-            'Heitor Cunha': 2100.00,
-            'Andrey Viana': 2000.00,
-            'Lorhane Ribeiro': 2100.00,
-            'Luis Butter': 2453.89,
-            'Carlos Ribeiro': 2000.00
+        // HORAS POR PLANTÃO (usado para converter D/N/B em horas trabalhadas)
+        // Heitor Cunha: backup diário, 8h/dia (40h semanais). Demais: escala 12x36 (12h/plantão).
+        const OPERATOR_SHIFT_HOURS = {
+            'Heitor Cunha': 8
         };
 
-        // GRATIFICAÇÃO POR TEMPO DE SERVIÇO (ANUÊNIO)
-        // Regra: para salários nominais de até R$ 2.560,84, paga 1% por ano sobre o salário base (limite 10%).
-        const ANUENIO_CONFIG = {
-            salaryCap: 2560.84,
-            percentPerYear: 0.01,
-            maxPercent: 0.10
-        };
-
-        // Ajuste aqui os anos por operador (Wellington e Lorhane ainda não têm 1 ano).
-        const ANUENIO_YEARS = {
-            'Josniel Rodriguez': 1,
-            'Bruno Sousa': 1,
-            'Heitor Cunha': 1,
-            'Andrey Viana': 1,
-            'Lorhane Ribeiro': 0,
-            'Luis Butter': 1,
-            'Carlos Ribeiro': 0
-        };
-
-        function calculateAnuenio(baseSalary, operator) {
-            const rawYears = Object.prototype.hasOwnProperty.call(ANUENIO_YEARS, operator) ? ANUENIO_YEARS[operator] : 0;
-            const years = Math.max(0, Number(rawYears) || 0);
-            const eligible = baseSalary <= ANUENIO_CONFIG.salaryCap;
-            const percent = eligible
-                ? Math.min(ANUENIO_CONFIG.maxPercent, years * ANUENIO_CONFIG.percentPerYear)
-                : 0;
-            const value = baseSalary * percent;
-            return { years, eligible, percent, value };
+        function getShiftHours(operator) {
+            return Object.prototype.hasOwnProperty.call(OPERATOR_SHIFT_HOURS, operator)
+                ? OPERATOR_SHIFT_HOURS[operator]
+                : 12;
         }
-        
+
+        // Horas descontadas por falta não abonada (padrão: 12h, equivalente a 1 plantão)
+        const ABSENCE_HOURS_PER_OCCURRENCE = 12;
+
         // Estrutura: scheduleData[month][operator][day]
         let allScheduleData = {};
         let overtimeData = {};
@@ -805,7 +779,6 @@
         }
 
         const NIGHT_ALLOWANCE_CONFIG = {
-            hourlyRate: 2.04,
             nightHours: 7,
             reducedMinutes: 52.5,
             ficticiousHours: function() {
@@ -816,52 +789,27 @@
         function calculateNightAllowance(nightShifts) {
             const ficticiousHours = NIGHT_ALLOWANCE_CONFIG.ficticiousHours();
             const totalFicticiousHours = nightShifts * ficticiousHours;
-            const totalValue = totalFicticiousHours * NIGHT_ALLOWANCE_CONFIG.hourlyRate;
-            
+
             return {
                 nightShifts: nightShifts,
                 hoursPerShift: ficticiousHours,
-                totalHours: totalFicticiousHours,
-                hourlyRate: NIGHT_ALLOWANCE_CONFIG.hourlyRate,
-                totalValue: totalValue
+                totalHours: totalFicticiousHours
             };
         }
 
-        function calculateOvertimeValue(operator, totalShifts, he50Units, he100Units) {
-    const baseSalary = SALARIES[operator] || 2100.00;
+        function calculateOvertimeHours(he50Units, he100Units) {
+            const he50Hours = he50Units * 6;
+            const he100Hours = he100Units * 12;
+            const totalOvertimeHours = he50Hours + he100Hours;
 
-    let divisor;
-
-    // Heitor trabalha 40h semanais
-    if (operator === 'Heitor Cunha') {
-        divisor = 200;
-    } 
-    // Plantonistas 12x36
-    else {
-        divisor = 220;
-    }
-
-    const hourlyRate = baseSalary / divisor;
-
-    const he50Hours = he50Units * 6;
-    const he100Hours = he100Units * 12;
-    const he50Value = he50Hours * hourlyRate * 1.5;
-    const he100Value = he100Hours * hourlyRate * 2.0;
-    const totalOvertimeValue = he50Value + he100Value;
-
-    return {
-        baseSalary: baseSalary,
-        divisor: divisor,
-        hourlyRate: hourlyRate,
-        he50Units: he50Units,
-        he50Hours: he50Hours,
-        he50Value: he50Value,
-        he100Units: he100Units,
-        he100Hours: he100Hours,
-        he100Value: he100Value,
-        totalOvertimeValue: totalOvertimeValue
-    };
-}
+            return {
+                he50Units: he50Units,
+                he50Hours: he50Hours,
+                he100Units: he100Units,
+                he100Hours: he100Hours,
+                totalOvertimeHours: totalOvertimeHours
+            };
+        }
 
         function saveToLocalStorage() {
             try {
@@ -1002,12 +950,12 @@
                     </ul>
                     <li><strong>Noturno (revezamento de duplas):</strong></li>
                     <ul>
-                        <li>Plantão 1: Andrey Viana + Lorhane Ribeiro</li>
-                        <li>Plantão 2: Luis Butter + Carlos Ribeiro</li>
+                        <li>Plantão 1: Andrey Viana + Lucas Rodrigues</li>
+                        <li>Plantão 2: Ágatha de Sousa + Carlos Ribeiro</li>
                         <li><em>(Duplas alternam dia sim, dia não)</em></li>
                     </ul>
                     <li><strong>Backup Diário:</strong> Heitor Cunha</li>
-                    <li><strong>Adicional Noturno:</strong> R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h) - Hora reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min</li>
+                    <li><strong>Adicional Noturno:</strong> 22h às 5h - Hora reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min</li>
                     <li><strong>Férias:</strong> Utilize a opção "FE" para marcar dias de férias</li>
                 </ul>
             `;
@@ -1129,15 +1077,17 @@
                 const totalHe100Units = manualHe100 + extraHe100Units;
                 const totalHe50Units = manualHe50 + extraHe50Units;
                 const nightAllowance = calculateNightAllowance(totals.N);
-                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, totalHe50Units, totalHe100Units);
-                const anuenio = calculateAnuenio(overtimeCalc.baseSalary, operator);
-                
-                // Calcular desconto por faltas não abonadas
-                const shiftValue = (overtimeCalc.baseSalary / overtimeCalc.divisor) * 12;
-                const discount = absenceCount * shiftValue;
-                
-                // Calcular total mensal
-                const totalMensal = overtimeCalc.baseSalary + anuenio.value + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue - discount;
+                const overtimeCalc = calculateOvertimeHours(totalHe50Units, totalHe100Units);
+
+                // Horas normais trabalhadas (plantões convertidos em horas)
+                const shiftHours = getShiftHours(operator);
+                const normalHours = totalPlantoes * shiftHours;
+
+                // Horas descontadas por faltas não abonadas
+                const discountHours = absenceCount * ABSENCE_HOURS_PER_OCCURRENCE;
+
+                // Total de horas do mês
+                const totalHoras = normalHours + overtimeCalc.totalOvertimeHours + nightAllowance.totalHours - discountHours;
 
                 const operatorDiv = document.createElement('div');
                 operatorDiv.className = 'operator-summary';
@@ -1152,8 +1102,7 @@
                         <div class="summary-item"><span>Feriado:</span><span class="summary-value">${holidayCount}</span></div>
                         <div class="summary-item"><span>Falta:</span><span class="summary-value">${absenceCount}</span></div>
                         <div class="summary-item"><span>Total Plantões:</span><span class="summary-value">${totalPlantoes}</span></div>
-                        <div class="summary-item"><span>Salário Base:</span><span class="summary-value money">R$ ${overtimeCalc.baseSalary.toFixed(2)}</span></div>
-                        <div class="summary-item"><span>Anuênio:</span><span class="summary-value money">R$ ${anuenio.value.toFixed(2)}</span></div>
+                        <div class="summary-item"><span>Horas Normais:</span><span class="summary-value">${normalHours.toFixed(2)}h</span></div>
                         <div class="editable-item"><span>H.E. 100% (unidades):</span><input type="number" class="hours-input" value="${manualHe100}" onchange="updateOvertime('${operator}', 'he100', this.value)" min="0" step="0.5" placeholder="0" ${locked ? 'disabled' : ''}></div>
                         <div class="editable-item"><span>H.E. 50% (unidades):</span><input type="number" class="hours-input" value="${manualHe50}" onchange="updateOvertime('${operator}', 'he50', this.value)" min="0" step="0.5" placeholder="0" ${locked ? 'disabled' : ''}></div>
                     </div>
@@ -1176,25 +1125,25 @@
                             ` : ''}
                             ${totalHe50Units > 0 ? `
                             <div class="summary-item">
-                                <span>H.E. 50% (${totalHe50Units} un. = ${overtimeCalc.he50Hours}h):</span>
-                                <span class="summary-value money">R$ ${overtimeCalc.he50Value.toFixed(2)}</span>
+                                <span>H.E. 50% (${totalHe50Units} un.):</span>
+                                <span class="summary-value">${overtimeCalc.he50Hours}h</span>
                             </div>
                             <div class="calculation-detail">
-                                ${totalHe50Units} un. × 6h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 1,5
+                                ${totalHe50Units} un. × 6h
                             </div>
                             ` : ''}
                             ${totalHe100Units > 0 ? `
                             <div class="summary-item">
-                                <span>H.E. 100% (${totalHe100Units} un. = ${overtimeCalc.he100Hours}h):</span>
-                                <span class="summary-value money">R$ ${overtimeCalc.he100Value.toFixed(2)}</span>
+                                <span>H.E. 100% (${totalHe100Units} un.):</span>
+                                <span class="summary-value">${overtimeCalc.he100Hours}h</span>
                             </div>
                             <div class="calculation-detail">
-                                ${totalHe100Units} un. × 12h × R$ ${overtimeCalc.hourlyRate.toFixed(2)} × 2,0
+                                ${totalHe100Units} un. × 12h
                             </div>
                             ` : ''}
                             <div class="summary-item" style="margin-top: 10px; border-top: 2px solid #FF9800; padding-top: 10px;">
                                 <span><strong>Total H.E.:</strong></span>
-                                <span class="summary-value money"><strong>R$ ${overtimeCalc.totalOvertimeValue.toFixed(2)}</strong></span>
+                                <span class="summary-value"><strong>${overtimeCalc.totalOvertimeHours}h</strong></span>
                             </div>
                         </div>
                     `;
@@ -1215,15 +1164,15 @@
                                 <span class="summary-value">${absenceCount}</span>
                             </div>
                             <div class="summary-item">
-                                <span>Valor por Plantão:</span>
-                                <span class="summary-value">R$ ${shiftValue.toFixed(2)}</span>
+                                <span>Horas por Falta:</span>
+                                <span class="summary-value">${ABSENCE_HOURS_PER_OCCURRENCE}h</span>
                             </div>
                             <div class="summary-item" style="margin-top: 10px; border-top: 2px solid #F44336; padding-top: 10px;">
-                                <span><strong>Total Desconto:</strong></span>
-                                <span class="summary-value money"><strong>R$ ${discount.toFixed(2)}</strong></span>
+                                <span><strong>Total Horas Descontadas:</strong></span>
+                                <span class="summary-value"><strong>${discountHours}h</strong></span>
                             </div>
                             <div class="calculation-detail">
-                                ${absenceCount} faltas × R$ ${shiftValue.toFixed(2)} (Salário Base ÷ ${overtimeCalc.divisor}h × 12h)
+                                ${absenceCount} faltas × ${ABSENCE_HOURS_PER_OCCURRENCE}h
                             </div>
                         </div>
                     `;
@@ -1249,12 +1198,8 @@
                                 <span>Total Horas Fictas:</span>
                                 <span class="summary-value">${nightAllowance.totalHours.toFixed(2)}h</span>
                             </div>
-                            <div class="summary-item">
-                                <span>Valor Total:</span>
-                                <span class="summary-value money">R$ ${nightAllowance.totalValue.toFixed(2)}</span>
-                            </div>
                             <div class="calculation-detail">
-                                Cálculo: ${nightAllowance.nightShifts} plantões × ${nightAllowance.hoursPerShift.toFixed(2)}h × R$ ${nightAllowance.hourlyRate.toFixed(2)}
+                                Cálculo: ${nightAllowance.nightShifts} plantões × ${nightAllowance.hoursPerShift.toFixed(2)}h
                             </div>
                             <div class="calculation-detail">
                                 Base legal: 7h reais (22h às 5h) = ${nightAllowance.hoursPerShift.toFixed(2)}h fictas (hora reduzida de ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min)
@@ -1264,39 +1209,35 @@
                     operatorDiv.appendChild(nightAllowanceDiv);
                 }
 
-                // Adicionar TOTAL MENSAL
+                // Adicionar TOTAL DE HORAS
                 const totalDiv = document.createElement('div');
                 totalDiv.className = 'night-allowance-section';
                 totalDiv.style.background = 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)';
                 totalDiv.style.borderColor = '#4CAF50';
                 totalDiv.innerHTML = `
-                    <h4>💰 TOTAL MENSAL</h4>
+                    <h4>⏱️ TOTAL DE HORAS</h4>
                     <div class="night-calculation">
                         <div class="summary-item">
-                            <span>Salário Base:</span>
-                            <span class="summary-value money">R$ ${overtimeCalc.baseSalary.toFixed(2)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span>Anuênio:</span>
-                            <span class="summary-value money">R$ ${anuenio.value.toFixed(2)}</span>
+                            <span>Horas Normais:</span>
+                            <span class="summary-value">${normalHours.toFixed(2)}h</span>
                         </div>
                         <div class="summary-item">
                             <span>Adicional Noturno:</span>
-                            <span class="summary-value money">R$ ${nightAllowance.totalValue.toFixed(2)}</span>
+                            <span class="summary-value">${nightAllowance.totalHours.toFixed(2)}h</span>
                         </div>
                         <div class="summary-item">
                             <span>Horas Extras:</span>
-                            <span class="summary-value money">R$ ${overtimeCalc.totalOvertimeValue.toFixed(2)}</span>
+                            <span class="summary-value">${overtimeCalc.totalOvertimeHours.toFixed(2)}h</span>
                         </div>
                         ${absenceCount > 0 ? `
                         <div class="summary-item">
                             <span>Descontos (Faltas):</span>
-                            <span class="summary-value money" style="color: #F44336;">-R$ ${discount.toFixed(2)}</span>
+                            <span class="summary-value" style="color: #F44336;">-${discountHours.toFixed(2)}h</span>
                         </div>
                         ` : ''}
                         <div class="summary-item" style="margin-top: 10px; border-top: 3px solid #4CAF50; padding-top: 10px; font-size: 16px;">
-                            <span><strong>TOTAL A RECEBER:</strong></span>
-                            <span class="summary-value money"><strong>R$ ${totalMensal.toFixed(2)}</strong></span>
+                            <span><strong>TOTAL DE HORAS:</strong></span>
+                            <span class="summary-value"><strong>${totalHoras.toFixed(2)}h</strong></span>
                         </div>
                     </div>
                 `;
@@ -1320,7 +1261,7 @@
             // Preencher todo o mês, sobrescrevendo os valores
 
             // Referência fixa de alternância (informada pelo usuário)
-            // 30/03/2026: Josniel de dia, Lais + Lorhane à noite
+            // 30/03/2026: Josniel de dia, Andrey + Lucas à noite
             const anchorUTC = Date.UTC(2026, 2, 30); // mês 0-based
             const anchorIsOdd = true;
 
@@ -1353,14 +1294,14 @@
                 // NOTURNO: Duplas alternam na sequência contínua
                 if (isOddDay) {
                     scheduleData['Andrey Viana'][day] = 'N';
-                    scheduleData['Lorhane Ribeiro'][day] = 'N';
-                    scheduleData['Luis Butter'][day] = '';
+                    scheduleData['Lucas Rodrigues'][day] = 'N';
+                    scheduleData['Ágatha de Sousa'][day] = '';
                     scheduleData['Carlos Ribeiro'][day] = '';
                 } else {
-                    scheduleData['Luis Butter'][day] = 'N';
+                    scheduleData['Ágatha de Sousa'][day] = 'N';
                     scheduleData['Carlos Ribeiro'][day] = 'N';
                     scheduleData['Andrey Viana'][day] = '';
-                    scheduleData['Lorhane Ribeiro'][day] = '';
+                    scheduleData['Lucas Rodrigues'][day] = '';
                 }
 
                 // BACKUP DIÁRIO: Heitor Cunha apenas nos dias úteis (não contempla sábados e domingos)
@@ -1372,7 +1313,7 @@
             autoSave();
             
             const monthName = getMonthName(month);
-            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Andrey+Lorhane à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Bruno\n• Noturno: Duplas alternam (Andrey+Lorhane / Luis+Carlos)\n• Backup Diário: Heitor Cunha`);
+            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Andrey+Lucas à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Bruno\n• Noturno: Duplas alternam (Andrey+Lucas / Ágatha de Sousa+Carlos)\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
@@ -1485,10 +1426,10 @@
             doc.text(`  - Dias ímpares: Josniel Rodriguez`, margin + 5, yPos + 5);
             doc.text(`  - Dias pares: Bruno Sousa`, margin + 5, yPos + 10);
             doc.text(`• Noturno (duplas alternam dia sim, dia não):`, margin + 5, yPos + 15);
-            doc.text(`  - Plantão 1: Andrey Viana + Lorhane Ribeiro`, margin + 5, yPos + 20);
-            doc.text(`  - Plantão 2: Luis Butter + Carlos Ribeiro`, margin + 5, yPos + 25);
+            doc.text(`  - Plantão 1: Andrey Viana + Lucas Rodrigues`, margin + 5, yPos + 20);
+            doc.text(`  - Plantão 2: Ágatha de Sousa + Carlos Ribeiro`, margin + 5, yPos + 25);
             doc.text(`• Backup Diário: Heitor Cunha`, margin + 5, yPos + 30);
-            doc.text(`• Adicional Noturno: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}/hora (22h às 5h)`, margin + 5, yPos + 35);
+            doc.text(`• Adicional Noturno: 22h às 5h`, margin + 5, yPos + 35);
             yPos += 45;
 
             doc.setFont('helvetica', 'bold');
@@ -1559,7 +1500,7 @@
             doc.text('Quantitativos Individuais', margin, yPos);
             yPos += 10;
 
-            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'FE', 'M', 'FR', 'FT', 'Total Plantões', 'Salário Base', 'Anuênio', 'Horas Extras', 'Adic. Noturno', 'Descontos', 'TOTAL'];
+            const summaryHeaders = ['Operador', 'D', 'N', 'B', 'FE', 'M', 'FR', 'FT', 'Total Plantões', 'Horas Normais', 'Horas Extras', 'Adic. Noturno (h)', 'Horas Descontadas', 'TOTAL HORAS'];
             const dayOperators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha'];
             const summaryData = operators.map(operator => {
                 const totals = { D: 0, N: 0, B: 0, F: 0, FE: 0, FR: 0, FT: 0, FN: 0, M: 0 };
@@ -1576,27 +1517,26 @@
                 const totalHe100Units = manualHe100 + extraHe100Units;
                 const totalHe50Units = manualHe50 + extraHe50Units;
                 const nightAllowance = calculateNightAllowance(totals.N);
-                const overtimeCalc = calculateOvertimeValue(operator, totalPlantoes, totalHe50Units, totalHe100Units);
-                const anuenio = calculateAnuenio(overtimeCalc.baseSalary, operator);
-                const shiftValue = (overtimeCalc.baseSalary / overtimeCalc.divisor) * 12;
-                const discount = absenceCount * shiftValue;
-                const totalMensal = overtimeCalc.baseSalary + anuenio.value + nightAllowance.totalValue + overtimeCalc.totalOvertimeValue - discount;
+                const overtimeCalc = calculateOvertimeHours(totalHe50Units, totalHe100Units);
+                const shiftHours = getShiftHours(operator);
+                const normalHours = totalPlantoes * shiftHours;
+                const discountHours = absenceCount * ABSENCE_HOURS_PER_OCCURRENCE;
+                const totalHoras = normalHours + overtimeCalc.totalOvertimeHours + nightAllowance.totalHours - discountHours;
                 return [
-                    operator, 
-                    totals.D.toString(), 
-                    totals.N.toString(), 
-                    totals.B.toString(), 
+                    operator,
+                    totals.D.toString(),
+                    totals.N.toString(),
+                    totals.B.toString(),
                     vacationCount.toString(),
                     totals.M.toString(),
                     holidayCount.toString(),
                     absenceCount.toString(),
                     totalPlantoes.toString(),
-                    'R$ ' + overtimeCalc.baseSalary.toFixed(2),
-                    'R$ ' + anuenio.value.toFixed(2),
-                    'R$ ' + overtimeCalc.totalOvertimeValue.toFixed(2),
-                    'R$ ' + nightAllowance.totalValue.toFixed(2),
-                    absenceCount > 0 ? 'R$ ' + discount.toFixed(2) : '',
-                    'R$ ' + totalMensal.toFixed(2)
+                    normalHours.toFixed(2) + 'h',
+                    overtimeCalc.totalOvertimeHours.toFixed(2) + 'h',
+                    nightAllowance.totalHours.toFixed(2) + 'h',
+                    absenceCount > 0 ? discountHours.toFixed(2) + 'h' : '',
+                    totalHoras.toFixed(2) + 'h'
                 ];
             });
 
@@ -1606,15 +1546,14 @@
                 startY: yPos,
                 styles: { fontSize: 7, cellPadding: 2.5, textColor: [50, 50, 50], lineColor: [200, 200, 200], lineWidth: 0.1, halign: 'center' },
                 headStyles: { fillColor: [30, 60, 114], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
-                columnStyles: { 
-                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] }, 
+                columnStyles: {
+                    0: { cellWidth: 25, fontStyle: 'bold', halign: 'left', fillColor: [245, 245, 245] },
                     8: { fontStyle: 'bold' },
                     9: { fillColor: [240, 240, 240] },
-                    10: { fontStyle: 'bold', textColor: [102, 16, 242] },
-                    11: { fontStyle: 'bold', textColor: [255, 140, 0] },
-                    12: { fontStyle: 'bold', textColor: [40, 167, 69] },
-                    13: { fontStyle: 'bold', textColor: [244, 67, 54] },
-                    14: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 8 }
+                    10: { fontStyle: 'bold', textColor: [255, 140, 0] },
+                    11: { fontStyle: 'bold', textColor: [40, 167, 69] },
+                    12: { fontStyle: 'bold', textColor: [244, 67, 54] },
+                    13: { fontStyle: 'bold', textColor: [0, 100, 0], fillColor: [200, 255, 200], fontSize: 8 }
                 },
                 margin: { left: margin, right: margin }
             });
@@ -1634,23 +1573,9 @@
             doc.text(`• Cada unidade de H.E. 100% equivale a 12 horas`, margin + 5, yPos);
             doc.text(`• Cada unidade de H.E. 50% equivale a 6 horas`, margin + 5, yPos + 5);
             doc.text(`• Feriados (FR) adicionam 1 unidade extra (100% diurno, 50% noturno)`, margin + 5, yPos + 10);
-            doc.text(`• Faltas não abonadas (FT) descontam o valor proporcional do plantão`, margin + 5, yPos + 15);
-            doc.text(`• Hora Extra 50%: (Salário Base ÷ Horas Trabalhadas) × 1,5`, margin + 5, yPos + 20);
-            doc.text(`• Hora Extra 100%: (Salário Base ÷ Horas Trabalhadas) × 2,0`, margin + 5, yPos + 25);
-            yPos += 35;
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.text('Salários Base:', margin + 5, yPos);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            yPos += 5;
-            
-            Object.keys(SALARIES).forEach(op => {
-                doc.text(`${op}: R$ ${SALARIES[op].toFixed(2)}`, margin + 10, yPos);
-                yPos += 4;
-            });
-            yPos += 10;
+            doc.text(`• Faltas não abonadas (FT) descontam ${ABSENCE_HOURS_PER_OCCURRENCE}h por ocorrência`, margin + 5, yPos + 15);
+            doc.text(`• Horas Normais = Total de Plantões × horas do plantão (12h; Heitor Cunha: 8h)`, margin + 5, yPos + 20);
+            yPos += 30;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
@@ -1665,9 +1590,8 @@
             doc.text(`• Horário noturno: 22h às 5h (${NIGHT_ALLOWANCE_CONFIG.nightHours} horas reais)`, margin + 5, yPos);
             doc.text(`• Hora noturna reduzida: ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes} minutos`, margin + 5, yPos + 5);
             doc.text(`• Horas fictas por plantão: ${ficticiousHours.toFixed(2)} horas`, margin + 5, yPos + 10);
-            doc.text(`• Valor por hora: R$ ${NIGHT_ALLOWANCE_CONFIG.hourlyRate.toFixed(2)}`, margin + 5, yPos + 15);
-            doc.text(`• Cálculo: ${NIGHT_ALLOWANCE_CONFIG.nightHours}h × 60min ÷ ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min = ${ficticiousHours.toFixed(2)}h fictas`, margin + 5, yPos + 20);
-            yPos += 35;
+            doc.text(`• Cálculo: ${NIGHT_ALLOWANCE_CONFIG.nightHours}h × 60min ÷ ${NIGHT_ALLOWANCE_CONFIG.reducedMinutes}min = ${ficticiousHours.toFixed(2)}h fictas`, margin + 5, yPos + 15);
+            yPos += 30;
 
             if (yPos > 200) { doc.addPage(); addHeader(); yPos = 60; }
 
