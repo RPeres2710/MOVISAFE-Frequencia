@@ -830,7 +830,7 @@
         })();
 
         // LISTA ATUALIZADA DE OPERADORES
-        const operators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha', 'Andrey Viana', 'Lucas Rodrigues', 'Ágatha de Sousa', 'Carlos Ribeiro'];
+        const operators = ['Josniel Rodriguez', 'Davi Marcolino', 'Heitor Cunha', 'Cristiano Victoria', 'Lucas Rodrigues', 'Ágatha de Sousa', 'Carlos Ribeiro'];
         
         // HORAS POR PLANTÃO (usado para converter D/N/B em horas trabalhadas)
         // Heitor Cunha: backup diário, 8h/dia (40h semanais). Demais: escala 12x36 (12h/plantão).
@@ -1253,11 +1253,11 @@
                     <li><strong>Diurno (revezamento diário):</strong></li>
                     <ul>
                         <li>Dias Ímpares: Josniel Rodriguez</li>
-                        <li>Dias Pares: Bruno Sousa</li>
+                        <li>Dias Pares: Davi Marcolino</li>
                     </ul>
                     <li><strong>Noturno (revezamento de duplas):</strong></li>
                     <ul>
-                        <li>Plantão 1: Andrey Viana + Lucas Rodrigues</li>
+                        <li>Plantão 1: Cristiano Victoria + Lucas Rodrigues</li>
                         <li>Plantão 2: Ágatha de Sousa + Carlos Ribeiro</li>
                         <li><em>(Duplas alternam dia sim, dia não)</em></li>
                     </ul>
@@ -1365,7 +1365,7 @@
             const selectedMonth = getSelectedMonthKey();
             const locked = isMonthLocked(selectedMonth);
             const scheduleData = getCurrentMonthData();
-            const dayOperators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha'];
+            const dayOperators = ['Josniel Rodriguez', 'Davi Marcolino', 'Heitor Cunha'];
 
             operators.forEach(operator => {
                 const totals = { D: 0, N: 0, B: 0, F: 0, FE: 0, FR: 0, FT: 0, FN: 0, M: 0 };
@@ -1569,7 +1569,7 @@
             // Preencher todo o mês, sobrescrevendo os valores
 
             // Referência fixa de alternância (informada pelo usuário)
-            // 30/03/2026: Josniel de dia, Andrey + Lucas à noite
+            // 30/03/2026: Josniel de dia, Cristiano + Lucas à noite
             const anchorUTC = Date.UTC(2026, 2, 30); // mês 0-based
             const anchorIsOdd = true;
 
@@ -1590,25 +1590,25 @@
                     if (!scheduleData[op]) scheduleData[op] = {};
                 });
                 
-                // DIURNO: Josniel (dias ímpares da sequência) e Bruno (dias pares)
+                // DIURNO: Josniel (dias ímpares da sequência) e Davi (dias pares)
                 if (isOddDay) {
                     scheduleData['Josniel Rodriguez'][day] = 'D';
-                    scheduleData['Bruno Sousa'][day] = '';
+                    scheduleData['Davi Marcolino'][day] = '';
                 } else {
-                    scheduleData['Bruno Sousa'][day] = 'D';
+                    scheduleData['Davi Marcolino'][day] = 'D';
                     scheduleData['Josniel Rodriguez'][day] = '';
                 }
 
                 // NOTURNO: Duplas alternam na sequência contínua
                 if (isOddDay) {
-                    scheduleData['Andrey Viana'][day] = 'N';
+                    scheduleData['Cristiano Victoria'][day] = 'N';
                     scheduleData['Lucas Rodrigues'][day] = 'N';
                     scheduleData['Ágatha de Sousa'][day] = '';
                     scheduleData['Carlos Ribeiro'][day] = '';
                 } else {
                     scheduleData['Ágatha de Sousa'][day] = 'N';
                     scheduleData['Carlos Ribeiro'][day] = 'N';
-                    scheduleData['Andrey Viana'][day] = '';
+                    scheduleData['Cristiano Victoria'][day] = '';
                     scheduleData['Lucas Rodrigues'][day] = '';
                 }
 
@@ -1621,7 +1621,7 @@
             autoSave();
             
             const monthName = getMonthName(month);
-            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Andrey+Lucas à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Bruno\n• Noturno: Duplas alternam (Andrey+Lucas / Ágatha de Sousa+Carlos)\n• Backup Diário: Heitor Cunha`);
+            alert(`✅ ${monthName} preenchido automaticamente!\n\n⚠️ Preenchimento substituiu valores existentes.\n\nBase de alternância: 30/03/2026 (Josniel de dia; Cristiano+Lucas à noite)\n\nConfiguração:\n• Diurno: Alternância contínua Josniel/Davi\n• Noturno: Duplas alternam (Cristiano+Lucas / Ágatha de Sousa+Carlos)\n• Backup Diário: Heitor Cunha`);
         }
 
         function updateCalendarDisplay() {
@@ -1733,9 +1733,9 @@
 
             doc.text(`• Diurno (revezamento diário):`, margin + 5, yPos);
             doc.text(`  - Dias ímpares: Josniel Rodriguez`, margin + 5, yPos + 5);
-            doc.text(`  - Dias pares: Bruno Sousa`, margin + 5, yPos + 10);
+            doc.text(`  - Dias pares: Davi Marcolino`, margin + 5, yPos + 10);
             doc.text(`• Noturno (duplas alternam dia sim, dia não):`, margin + 5, yPos + 15);
-            doc.text(`  - Plantão 1: Andrey Viana + Lucas Rodrigues`, margin + 5, yPos + 20);
+            doc.text(`  - Plantão 1: Cristiano Victoria + Lucas Rodrigues`, margin + 5, yPos + 20);
             doc.text(`  - Plantão 2: Ágatha de Sousa + Carlos Ribeiro`, margin + 5, yPos + 25);
             doc.text(`• Backup Diário: Heitor Cunha`, margin + 5, yPos + 30);
             doc.text(`• Adicional Noturno: 22h às 5h`, margin + 5, yPos + 35);
@@ -1820,7 +1820,7 @@
             yPos += 10;
 
             const summaryHeaders = ['Operador', 'D', 'N', 'B', 'FE', 'M', 'FR', 'FT', 'Total Plantões', 'Horas Normais', 'Horas Extras', 'Adic. Noturno (h)', 'Horas Descontadas', 'TOTAL HORAS'];
-            const dayOperators = ['Josniel Rodriguez', 'Bruno Sousa', 'Heitor Cunha'];
+            const dayOperators = ['Josniel Rodriguez', 'Davi Marcolino', 'Heitor Cunha'];
             const summaryData = operators.map(operator => {
                 const totals = { D: 0, N: 0, B: 0, F: 0, FE: 0, FR: 0, FT: 0, FN: 0, M: 0 };
                 Object.values(scheduleData[operator] || {}).forEach(value => { if (totals.hasOwnProperty(value)) totals[value]++; });
